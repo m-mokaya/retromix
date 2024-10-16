@@ -1,0 +1,14 @@
+policy:
+  files:
+    uspto:
+      - /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/uspto_model.onnx
+      - /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/uspto_templates.csv.gz
+    ringbreaker:
+      - /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/uspto_ringbreaker_model.onnx
+      - /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/uspto_ringbreaker_templates.csv.gz     
+filter:
+  files:
+    uspto: /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/uspto_filter_model.onnx
+stock:
+  files:
+    zinc: /data/pegasus/not-backed-up/mokaya/aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
