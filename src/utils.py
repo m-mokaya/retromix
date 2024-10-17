@@ -1,5 +1,6 @@
 import os
 import sys
+import yaml
 import pandas as pd
 from rdcanon import canon_reaction_smarts
 
@@ -163,4 +164,46 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
                 if template == template1 or reaction_template_similarity(template1, template) == 1.0:
                     processed_counts[template] = total_count
 
-    return processed_counts 
+    return processed_counts
+
+
+def generate_aiz_configs(config, output_dir, type):
+    """
+    Generate configuration files for each template class.
+    
+    :param templates: list of templates
+    :return: None
+    """
+    
+    with open(config, 'r') as f:
+        config = yaml.safe_load(f)
+        
+    if type == 'overlooked':
+        config['properties']['optimise_from_file'] = True
+        config["properties"]["optimisation_data"] = os.path.join(output_dir, f'novel_templates_data.json')
+        
+        with open(os.path.join(output_dir, 'config_overlooked.yml'), 'w') as file:
+            yaml.dump(config, file)
+        return config
+            
+    elif type == 'popular':
+        config['properties']['optimise_from_file'] = True
+        config["properties"]["optimisation_data"] = os.path.join(output_dir, f'popular_templates_data.json')
+        
+        with open(os.path.join(output_dir, 'config_popular.yml'), 'w') as file:
+            yaml.dump(config, file)
+        return config
+            
+    elif type == 'novel':
+        config['properties']['allow_novel_templates'] = True
+        config['properties']['novel_templates_data'] = os.path.join(output_dir, f'novel_templates_data.json')
+    
+        with open(os.path.join(output_dir, 'config_novel.yml'), 'w') as file:
+                yaml.dump(config, file)
+        return config
+    else:
+        print('Invalid type')
+        return
+    
+    
+     
