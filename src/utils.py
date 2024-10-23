@@ -6,13 +6,12 @@ from rdcanon import canon_reaction_smarts
 
 from rdkit.Chem import rdChemReactions, DataStructs
 
-sys.path.append("...")  # Replace with the path to aizynthfinder
-
 from aizynthfinder.aizynthfinder.reactiontree import ReactionTree
 
 def calculate_molport_cost(route, stock, not_in_stock_multiplier):
     """
-    Fucntion to calculate the cost of a route based on the stock of a supplier
+    Function to calculate the cost of a route based on the stock of a supplier
+    
     :param route: ReactionTree object
     :param stock: DataFrame with the stock of the supplier
     :return: float with the cost of the route
@@ -69,6 +68,7 @@ def get_solved_trees(routes: pd.DataFrame) -> list[list[dict]]:
 def reaction_template_similarity(template_1, template_2, precomputed: bool = False):
     """
     Calculate the similarity between two reaction templates.
+    
     :param template_1: the first template   
     :param template_2: the second template
     :param precomputed: whether the fingerprints are precomputed

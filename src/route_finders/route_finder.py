@@ -4,7 +4,6 @@ import sys
 import pandas as pd
 import multiprocessing as mp
 
-
 class RouteFinder:
     """
     A general class for finding retrosynthetic routes using different tools.

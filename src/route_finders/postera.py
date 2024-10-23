@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from multiprocessing import Pool
 
-from route_finders.route_finder import RouteFinder
+from src.route_finders.route_finder import RouteFinder
 from rdchiral.template_extractor import extract_from_reaction # type: ignore
 
 POSTERA_API_KEY = os.getenv("POSTERA_API_KEY")
@@ -37,6 +37,12 @@ class PosRouteFinder(RouteFinder):
         return chunks
     
     def prepateBatchQueryData(self, selected_smiles):
+        """
+        Prepare the data for a batch query.
+        
+        :param selected_smiles (list): list of SMILES strings
+        :return dict: dictionary with the data
+        """
         data = {}
         data["maxSearchDepth"] = self.maxSearchDepth
         data["catalogs"] = self.catalogues
@@ -44,6 +50,13 @@ class PosRouteFinder(RouteFinder):
         return data
 
     def retrosynthesis_search(self, smiles):
+        """
+        Search for retrosynthetic routes for a list of SMILES strings.
+        
+        :param smiles (list): list of SMILES strings
+        :return dict: dictionary with the results
+        """
+        
         data = self.prepateBatchQueryData(smiles)
         response = requests.post(self.url, json=data, headers={'X-API-KEY': self.api_key})
 

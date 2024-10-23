@@ -5,10 +5,7 @@ import pandas as pd
 import numpy as np
 import multiprocessing as mp
 
-from route_finders.route_finder import RouteFinder
-
-aizynth_dir = "/data/localhost/not-backed-up/mokaya/aizynthfinder"
-sys.path.append(aizynth_dir + "/aizynthfinder")
+from src.route_finders.route_finder import RouteFinder
 
 from aizynthfinder.aizynthfinder import AiZynthFinder
 

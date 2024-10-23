@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 import numpy as np
 
-from analysis.template_analyser import TemplateAnalyser
+from src.analysis.template_analyser import TemplateAnalyser
 from src import utils
 
 class AizPosTemplateAnalyser(TemplateAnalyser):
