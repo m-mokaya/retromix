@@ -1,6 +1,0 @@
-targets: ...
-output_dir: ...
-nproc: 1
-aizynthfinder_config:
-aizynthfinder_dir: 
-template_library: 

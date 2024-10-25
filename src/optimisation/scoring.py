@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import yaml
 import argparse
 import pandas as pd
 import numpy as np
@@ -8,27 +9,40 @@ import numpy as np
 import multiprocessing
 from functools import partial
 
-from coprinet.pricePrediction.nets.netsGraph import PricePredictorModule
-from coprinet.pricePrediction.predict.predict import GraphPricePredictor
+# Add the current working directory to sys.path
+sys.path.append(os.getcwd())
 
 from aizynthfinder.reactiontree import ReactionTree
+from CoPriNet.pricePrediction.predict.predict import GraphPricePredictor
 
 class OptimisationScorer:
-    def __init__(self, predictor, args):
+    def __init__(self, stock: dict = None, predictor: GraphPricePredictor = None, use_coprinet: bool = False):
+        """
+        Initialise the OptimisationScorer to calculate POS score. 
+        
+        :param args: the arguments to use
+        :param predictor: the price predictor to use
+        :param use_coprinet: whether to use the coprinet model
+        """
+        
         self.predictor = predictor
         self.args = args
         self.cost_cache = {}
+        self.stock = stock if stock is not None else None
+        self.use_coprinet = use_coprinet
+        
         
         # Set the tree cost function
-        if self.use_coprinet == True:
+        if self.use_coprinet == True and self.predictor is not None:
             self.tree_cost = self.coprinet_tree_cost
+            print('Using coprinet model for cost prediction.')
         else:
-            if args.stock:
-                self.stock = args.stock
-                self.tree_cost = self.stock_library_tree_cost
+            if self.stock != None:
+                self.stock = self.stock
+                self.tree_cost = self.stock_tree_cost
+                print('Using stock library for cost prediction.')
             else:
                 raise ValueError('No stock library specified. Please add compatile stock library')
-        
     
     def coprinet_tree_cost(self, tree):
         """
@@ -45,14 +59,18 @@ class OptimisationScorer:
             self.cost_cache[tree_id] = total_cost
         return self.cost_cache[tree_id]
     
-    def stock_library_tree_cost(self, tree):
+    def stock_tree_cost(self, tree):
         """
         Calculate the cost of a tree using MolPort stock library
         
         :param tree: the tree to calculate the cost for
         :return: the cost of the tree
         """
-        raise NotImplementedError('Stock library cost calculation not implemented')
+        stock_dict = {k: v for k, v in self.stock[['inchi_key', 'price']].values}
+        rxn = ReactionTree.from_dict(tree)
+        stock_cost = self._calculate_stock_cost(rxn, stock_dict)
+        cost = 0.7 * stock_cost + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
+        return cost
     
     def compare_opt_performance(self, routes_1, routes_2):
         """
@@ -141,38 +159,68 @@ class OptimisationScorer:
                     solved_trees.append(tree)
             solved_routes.at[i, 'trees'] = [solved_trees]
         return solved_routes
+    
+    def _calculate_stock_cost(route: ReactionTree, stock: dict, not_in_stock=10.0) -> float:
+        """
+        Calculate the cost of a route using the stock library
+        
+        :param route: the route to calculate the cost for
+        :param stock: the stock library
+        """
+        leaves = list(route.leafs())
+        total_cost = 0
+        not_in_stock_multiplier = 10
+        for leaf in leaves:
+            inchi = leaf.inchi_key
+            if inchi in stock:
+                c = stock[inchi]
+                total_cost += c
+            else:
+                total_cost += not_in_stock_multiplier
+                print(str(leaf)+' not in stock')
+        return total_cost
+        
 
 
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--standard', type=str, required=True, help='Path to the pre-optimisation results.')
-    parser.add_argument('--optimised', type=str, required=True, help='Path to the optimised results.')
-    parser.add_argument('--ncpus', type=int, default=2, help='Number of CPUs to use.')
+    parser.add_argument('--pre', type=str, required=True, help='Path to the pre-optimisation results.')
+    parser.add_argument('--post', type=str, required=True, help='Path to the optimised results.')
+    parser.add_argument('--ncpus', type=int, default=1, help='Number of CPUs to use.')
+    parser.add_argument('--config', type=str, required=True, help='Path to the configuration file.')
+    parser.add_argument('--ngpus', type=int, default=0, help='Number of GPUs to use.')
     parser.add_argument('--output', type=str, required=True, help='Path to the output file.')
     args = parser.parse_args()
     
+    # load yaml config file
+    with open(args.config, 'r') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    
     # import results
-    std = pd.read_hdf(args.standard, 'table')
-    opt = pd.read_hdf(args.optimised, 'table')
+    std = pd.read_hdf(args.pre, 'table')
+    opt = pd.read_hdf(args.post, 'table')
     print('Results imported.')
     
     # load price predictior
     predictor = GraphPricePredictor(
-        model_path='/vols/opig/users/mokaya/CoPriNet/data/models/trained_virtual/lightning_logs/version_0/checkpoints/epoch=284-step=5323799.ckpt',
+        use_coprinet=True if config['coprinet_model_path'] != None else False,
+        model_path=config['coprinet_model_path'],
         n_cpus=args.ncpus,
+        n_gpus=args.ngpus
     )
     print('Generated predictor.')
     
-    difference, extra, num = compare_opt_performance(std, opt, predictor, args)
+    scorer = OptimisationScorer(predictor=predictor, use_coprinet=True)
+    cost_difference, extra_price, extra_solved = scorer.compare_opt_performance(std, opt)
     
     with open(args.output, 'w') as f:
         json.dump(
             {
-                'difference': difference,
-                'extra': extra,
-                'num': num
+                'cost_difference': cost_difference,
+                'extra_price': extra_price,
+                'extra_solved': extra_solved
             },
             f
         )
