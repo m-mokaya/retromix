@@ -12,13 +12,12 @@ from rdchiral.template_extractor import extract_from_reaction # type: ignore
 POSTERA_API_KEY = os.getenv("POSTERA_API_KEY")
 
 class PosRouteFinder(RouteFinder):
-    def __init__(self, smiles, filename, maxSearchDepth=4, ignore_zero_steps=False,
-                 catalogues=["molport"], api_key=POSTERA_API_KEY, verbose=True, output=None):   
+    def __init__(self, smiles, output, maxSearchDepth=4, ignore_zero_steps=False,
+                 catalogues=["molport"], api_key=POSTERA_API_KEY, verbose=True):   
         
         self.smiles = smiles
         self.url = "https://api.postera.ai/api/v1/retrosynthesis/batch/"
         self.api_key = api_key
-        self.filename = filename
         
         # search parameters
         self.maxSearchDepth = maxSearchDepth
@@ -140,7 +139,7 @@ class PosRouteFinder(RouteFinder):
             pathways = [self.convert_results_to_aiz_format(route) for route in route_data]
             aiz_format_results.append({smiles: pathways})
         
-        with open(self.filename, 'w') as f:
+        with open(os.path.join(self.output, "pos_routes.json"), 'w') as f:
             json.dump(aiz_format_results, f)            
         
         return aiz_format_results

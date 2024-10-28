@@ -167,7 +167,7 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
     return processed_counts
 
 
-def generate_aiz_configs(config, output_dir, type):
+def generate_aiz_configs(config, output_dir, type, templates):
     """
     Generate configuration files for each template class.
     
@@ -175,31 +175,26 @@ def generate_aiz_configs(config, output_dir, type):
     :return: None
     """
     
+    if templates is None:
+        print('No templates found')
+        return
+    
     with open(config, 'r') as f:
         config = yaml.safe_load(f)
         
     if type == 'overlooked':
         config['properties']['optimise_from_file'] = True
-        config["properties"]["optimisation_data"] = os.path.join(output_dir, f'novel_templates_data.json')
-        
-        with open(os.path.join(output_dir, 'config_overlooked.yml'), 'w') as file:
-            yaml.dump(config, file)
+        config["properties"]["optimisation_data"] = templates
         return config
             
     elif type == 'popular':
         config['properties']['optimise_from_file'] = True
-        config["properties"]["optimisation_data"] = os.path.join(output_dir, f'popular_templates_data.json')
-        
-        with open(os.path.join(output_dir, 'config_popular.yml'), 'w') as file:
-            yaml.dump(config, file)
+        config["properties"]["optimisation_data"] = templates
         return config
             
     elif type == 'novel':
         config['properties']['allow_novel_templates'] = True
-        config['properties']['novel_templates_data'] = os.path.join(output_dir, f'novel_templates_data.json')
-    
-        with open(os.path.join(output_dir, 'config_novel.yml'), 'w') as file:
-                yaml.dump(config, file)
+        config['properties']['novel_templates_data'] = templates
         return config
     else:
         print('Invalid type')

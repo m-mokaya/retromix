@@ -10,11 +10,10 @@ from src.route_finders.route_finder import RouteFinder
 from aizynthfinder.aizynthfinder import AiZynthFinder
 
 class AizRouteFinder(RouteFinder):
-    def __init__(self, configfile, smiles, nproc, output_dir):
+    def __init__(self, configfile, smiles, nproc):
         self.configfile = configfile
         self.smiles = smiles
         self.nproc = nproc
-        self.output = output_dir
         
     def worker(self, chunk):
         """
