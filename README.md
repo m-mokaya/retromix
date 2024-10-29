@@ -40,7 +40,7 @@ Reference `notebooks/integration.ipynb` for implementation details.
 
 Execute the route search:
 ```bash
-python src/route_search.py --rm_config {config_file}
+python src/route_search.py {arguments}
 ```
 
 ### Phase 3: Performance Scoring
