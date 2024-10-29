@@ -1,0 +1,26 @@
+search:
+  algorithm: mcts
+  algorithm_config:
+    C: 1.4
+    default_prior: 0.5
+    use_prior: True
+    prune_cycles_in_search: True
+    search_rewards:
+      - state score
+  max_transforms: 6
+  iteration_limit: 100
+  return_first: false
+  time_limit: 120
+  exclude_target_from_stock: True
+expansion:
+  uspto:
+    - aizynthfinder/aizynthfinder/data/uspto_model.onnx
+    - aizynthfinder/aizynthfinder/data/uspto_templates.csv.gz
+  ringbreaker:
+    - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_model.onnx
+    - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_templates.csv.gz
+filter:
+  uspto: aizynthfinder/aizynthfinder/data/uspto_filter_model.onnx
+stock:
+  zinc: aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
+  molport: aizynthfinder/aizynthfinder/data/molport_blocks_stock.hdf5

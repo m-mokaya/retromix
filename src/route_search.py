@@ -4,10 +4,10 @@ import json
 import yaml
 import argparse
 
-from route_finders.aizynthfinder import AizRouteFinder
+sys.path.append(os.getcwd())
 
-from utils import generate_aiz_configs
-
+from src.route_finders.aizynthfinder import AizRouteFinder
+from src.utils import generate_aiz_configs
 
 if __name__ == "__main__": 
     parser = argparse.ArgumentParser(description='Run Aizynthfinder & optimise templates')
@@ -22,23 +22,27 @@ if __name__ == "__main__":
     
     with open(args.smiles, 'r') as f:
         smiles = f.readlines()
+    print('Loaded target SMILES.')
     
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
+    print('Loaded config file.')
         
     if args.optimise:
-        new_aiz_config = generate_aiz_configs(config['aizynthfinder_config'], args.output_dir, args.type)
-        with open(os.path.join(args.output_dir, f'{args.type}_aiz_config.json'), 'r') as f:
-            json.dump(new_aiz_config, f)
+        print('Optimising templates...')
+        new_aiz_config = generate_aiz_configs(config['aizynthfinder_config'], args.type, args.templates)
+        with open(os.path.join(args.output_dir, f'{args.type}_aiz_config.yml'), 'w') as f:
+            yaml.dump(new_aiz_config, f)
             
         optimised_aiz = AizRouteFinder(
-            config_file=os.path.join(args.output_dir, f'{args.type}_aiz_config.json'),
+            configfile=os.path.join(args.output_dir, f'{args.type}_aiz_config.yml'),
             smiles=smiles,
             nproc=args.nproc,
         ).find_routes()
         optimised_aiz.to_hdf(os.path.join(args.output_dir, f'{args.type}_aiz_routes.hdf5'), 'table')
         
     else:
+        print('Finding retrosynthetic routes without optimisation...')
         aiz_routes = AizRouteFinder(
             config_file=config['aizynthfinder_config'],
             smiles=smiles,

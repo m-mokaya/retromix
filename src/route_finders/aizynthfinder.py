@@ -5,8 +5,10 @@ import pandas as pd
 import numpy as np
 import multiprocessing as mp
 
-from src.route_finders.route_finder import RouteFinder
+sys.path.append(os.getcwd())
+sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
 
+from route_finders.route_finder import RouteFinder
 from aizynthfinder.aizynthfinder import AiZynthFinder
 
 class AizRouteFinder(RouteFinder):

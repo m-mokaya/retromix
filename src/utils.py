@@ -6,7 +6,7 @@ from rdcanon import canon_reaction_smarts
 
 from rdkit.Chem import rdChemReactions, DataStructs
 
-from aizynthfinder.aizynthfinder.reactiontree import ReactionTree
+from aizynthfinder.reactiontree import ReactionTree
 
 def calculate_molport_cost(route, stock, not_in_stock_multiplier):
     """
@@ -167,7 +167,7 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
     return processed_counts
 
 
-def generate_aiz_configs(config, output_dir, type, templates):
+def generate_aiz_configs(config, type, templates):
     """
     Generate configuration files for each template class.
     
@@ -181,24 +181,14 @@ def generate_aiz_configs(config, output_dir, type, templates):
     
     with open(config, 'r') as f:
         config = yaml.safe_load(f)
-        
-    if type == 'overlooked':
-        config['properties']['optimise_from_file'] = True
-        config["properties"]["optimisation_data"] = templates
-        return config
-            
-    elif type == 'popular':
-        config['properties']['optimise_from_file'] = True
-        config["properties"]["optimisation_data"] = templates
-        return config
-            
-    elif type == 'novel':
-        config['properties']['allow_novel_templates'] = True
-        config['properties']['novel_templates_data'] = templates
+    
+    if type in ['overlooked', 'popular', 'novel']:
+        config['search']['optimisation_type'] = type
+        config['search']['custom_templates'] = templates
         return config
     else:
-        print('Invalid type')
+        print('Invalid template type')
         return
-    
+
     
      

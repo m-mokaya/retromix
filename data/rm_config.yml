@@ -1,7 +1,7 @@
 targets: ...
 output_dir: ...
 nproc: 1
-aizynthfinder_config: 'data/aiz_config.yml'
+aizynthfinder_config: 'aizynthfinder/aizynthfinder/data/config.yml'
 template_library: 'data/uspto_templates_canonical.csv.gz'
 coprinet_model_path: 'CoPriNet/data/models/trained_virtual/lightning_logs/version_0/checkpoints/epoch=284-step=5323799.ckpt'
-stock: '/data/localhost/not-backed-up/mokaya/retromix/data/molport_blocks_stock.hdf5'
+stock: 'data/molport_blocks_stock.hdf5'
