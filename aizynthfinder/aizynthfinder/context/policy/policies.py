@@ -197,7 +197,7 @@ class ExpansionPolicy(ContextCollection):
                     possible_actions, priors = self[name].get_actions(molecules)
                     all_possible_actions.extend(possible_actions)
                     all_priors.extend(priors)
-        elif self._config.optimisation_type == 'popular' or self._config.search.optimisation_type == 'overlooked':
+        elif self._config.search.optimisation_type == 'popular' or self._config.search.optimisation_type == 'overlooked':
             templates = self._get_optimised_templates()
             
             for name in self.selection:

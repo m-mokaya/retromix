@@ -2,10 +2,11 @@ import os
 import sys
 import yaml
 import pandas as pd
+
+sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
+
 from rdcanon import canon_reaction_smarts
-
 from rdkit.Chem import rdChemReactions, DataStructs
-
 from aizynthfinder.reactiontree import ReactionTree
 
 def calculate_molport_cost(route, stock, not_in_stock_multiplier):
@@ -52,8 +53,7 @@ def get_solved_trees(routes: pd.DataFrame) -> list[list[dict]]:
     :return: the solved trees
     """
     solved_routes = routes[routes['is_solved'] == True]
-    trees = solved_routes['trees'].tolist()
-    trees = [i[0] for i in trees]
+    trees = solved_routes['trees'].tolist() 
     
     solved_trees = []
     for mol in trees:

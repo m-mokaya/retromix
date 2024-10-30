@@ -27,7 +27,7 @@ class AizRouteFinder(RouteFinder):
         """
 
         finder = AiZynthFinder(configfile = self.configfile)
-        finder.stock.select('zinc')  # select an appriopriate stock
+        finder.stock.select('molport')  # select an appriopriate stock
         finder.expansion_policy.select('uspto')     # select an appriopriate expansion policy
 
         results = []
@@ -38,6 +38,7 @@ class AizRouteFinder(RouteFinder):
             search_time = finder.tree_search()
             finder.build_routes()
             stats = finder.extract_statistics()
+            stats['trees'] = finder.routes.dicts
 
             solved_str = 'is_solved' if stats['is_solved'] else 'is not solved'
             print(f'Done with {smi} in {search_time:.3} s and {solved_str}')

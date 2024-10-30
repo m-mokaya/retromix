@@ -3,8 +3,10 @@ import sys
 import pandas as pd
 import numpy as np
 
-from src.analysis.template_analyser import TemplateAnalyser
-from src import utils
+from rdcanon import canon_reaction_smarts
+
+from analysis.template_analyser import TemplateAnalyser
+import utils
 
 class AizPosTemplateAnalyser(TemplateAnalyser):
     def __init__(self, template_library: list[str]):
@@ -58,8 +60,11 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
         aiz_routes = utils.get_solved_trees(aiz_data)
         
         all_aiz_templates = [list(utils.findkeys(route, 'template')) for mol in aiz_routes for route in mol]
+        all_aiz_templates = [item for sublist in all_aiz_templates for item in sublist]
+        all_aiz_templates = [canon_reaction_smarts(template) for template in all_aiz_templates]
         all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]
-        
+        all_pos_templates = [item for sublist in all_pos_templates for item in sublist]
+         
         templates = []
         for mol, pos_trees in pos_data.items():
             if mol in aiz_solved_smiles:
@@ -76,11 +81,14 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
                 templates.extend([list(utils.findkeys(i, 'template')) for i in pos_trees])
                 
         print(f"Unused templates: {len(templates)} of which {len(set(templates))} are unique")
+      
         
         all_pos_template_counts = pd.Series(all_pos_templates).value_counts().to_dict()
         template_counts = pd.Series(templates).value_counts().to_dict()
         all_pos_template_counts = utils.process_duplicate_templates(all_pos_template_counts)
         template_counts = utils.process_duplicate_templates(template_counts)
+        
+        template_counts = {template: count for template, count in template_counts.items() if canon_reaction_smarts(template) not in all_aiz_templates}
         
         pos_template_scores = {template: used_count/all_pos_template_counts[template] for template, used_count in template_counts.items()}
         sorted_template_scores = {k: v for k, v in sorted(pos_template_scores.items(), key=lambda item: item[1], reverse=True)}

@@ -2,7 +2,7 @@ import os
 import sys
 import argparse
 
-from src.utils import canonicalise_smarts
+from utils import canonicalise_smarts
 
 class TemplateAnalyser:
     def __init__(self, template_library: list[str]):

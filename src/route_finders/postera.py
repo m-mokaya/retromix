@@ -8,22 +8,24 @@ from multiprocessing import Pool
 
 from src.route_finders.route_finder import RouteFinder
 from rdchiral.template_extractor import extract_from_reaction # type: ignore
-
-POSTERA_API_KEY = os.getenv("POSTERA_API_KEY")
+from analysis.generate_templates import generate_templates
 
 class PosRouteFinder(RouteFinder):
     def __init__(self, smiles, output, maxSearchDepth=4, ignore_zero_steps=False,
-                 catalogues=["molport"], api_key=POSTERA_API_KEY, verbose=True):   
+                 catalogues=["molport"], api_key=None, verbose=True):   
         
         self.smiles = smiles
         self.url = "https://api.postera.ai/api/v1/retrosynthesis/batch/"
-        self.api_key = api_key
         
         # search parameters
         self.maxSearchDepth = maxSearchDepth
         self.ignore_zero_steps = ignore_zero_steps
         self.catalogues = catalogues
         
+        if api_key is None:
+            raise ValueError("Please provide a Postera API key")
+        
+        self.api_key = api_key
         self.output = output
         
     def split_smiles(self):
@@ -90,7 +92,7 @@ class PosRouteFinder(RouteFinder):
 
             for reaction in reactions:
                 if reaction['productSmiles'] == smiles:
-                    template_data = extract_from_reaction(reaction)  # Call generate_templates to get the SMARTS string
+                    template_data = generate_templates(reaction)  # Call generate_templates to get the SMARTS string
                     reaction_node = {
                         'type': 'reaction',
                         'hide': False,
@@ -130,17 +132,23 @@ class PosRouteFinder(RouteFinder):
         """
         
         chunks = self.split_smiles() # split the smiles into chunks for parallel processing
-        for chunk in chunks:
-            with Pool(2) as p: # use a pool of 2 processes (posterai api has a limit of 2 concurrent requests)
-                results = p.map(self.retrosynthesis_search, chunk)
-        aiz_format_results = []
-        for smiles, routes in results.items():
+        with Pool(2) as p:
+            results = p.map(self.retrosynthesis_search, chunks)
+        
+        print('results len: ', len(results))
+        print('results type: ', list(results[0].keys()))
+        
+        # flatten the list of dictionaries to a single dictionary
+        flat_results = {k: v for d in results for k, v in d.items()}
+
+        aiz_format_results = {}
+        for smiles, routes in flat_results.items():
             route_data = routes['routes']
             pathways = [self.convert_results_to_aiz_format(route) for route in route_data]
-            aiz_format_results.append({smiles: pathways})
+            aiz_format_results[smiles] = pathways
         
         with open(os.path.join(self.output, "pos_routes.json"), 'w') as f:
-            json.dump(aiz_format_results, f)            
+            json.dump(aiz_format_results, f, indent=4)            
         
         return aiz_format_results
             
