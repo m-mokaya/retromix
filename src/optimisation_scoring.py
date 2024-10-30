@@ -10,10 +10,11 @@ import multiprocessing
 from functools import partial
 
 # Add the current working directory to sys.path
-sys.path.append(os.getcwd())
+sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
+sys.path.append(os.path.join(os.getcwd(), 'CoPriNet'))
 
-from aizynthfinder.reactiontree import ReactionTree
-from CoPriNet.pricePrediction.predict.predict import GraphPricePredictor
+from aizynthfinder.reactiontree import ReactionTree # type: ignore
+from pricePrediction.predict.predict import GraphPricePredictor # type: ignore
 
 class OptimisationScorer:
     def __init__(self, stock: dict = None, predictor: GraphPricePredictor = None, use_coprinet: bool = False):

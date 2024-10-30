@@ -11,12 +11,16 @@ from torch_geometric.data import Batch
 from tqdm import tqdm
 import pytorch_lightning as pl
 
-print(sys.path)
-
-from CoPriNet.pricePrediction.nets.netsGraph import PricePredictorModule
-from CoPriNet.pricePrediction.config import NUM_WORKERS_PER_GPU, BATCH_SIZE, DEFAULT_MODEL, USE_FEATURES_NET, \
+from pricePrediction.nets.netsGraph import PricePredictorModule
+from pricePrediction.config import NUM_WORKERS_PER_GPU, BATCH_SIZE, DEFAULT_MODEL, USE_FEATURES_NET, \
     BUFFER_N_BATCHES_FOR_PRED
 
+class GraphListWrapper:
+    def __init__(self, graphs_list):
+        self.graphs_list = graphs_list
+
+    def __call__(self):
+        return self.graphs_list
 
 class GraphPricePredictor():
     name = "price_GNN"
@@ -27,14 +31,15 @@ class GraphPricePredictor():
         self.n_gpus = n_gpus
         self.n_cpus = n_cpus
         self.batch_size = batch_size
-        self.trainer = pl.Trainer(gpus=self.n_gpus, logger=False)
-        self.model = PricePredictorModule.load_from_checkpoint(self.model_path, batch_size=self.batch_size)
+        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
+        self.trainer = pl.Trainer(logger=False)
+        self.model = PricePredictorModule.load_from_checkpoint(self.model_path, batch_size=self.batch_size, strict=False)
 
         if USE_FEATURES_NET:
-            from CoPriNet.pricePrediction.preprocessData.smilesToDescriptors import smiles_to_graph
+            from pricePrediction.preprocessData.smilesToDescriptors import smiles_to_graph
 
         else:
-            from CoPriNet.pricePrediction.preprocessData.smilesToGraph import smiles_to_graph
+            from pricePrediction.preprocessData.smilesToGraph import smiles_to_graph
 
         self.smiles_to_graph = smiles_to_graph
 
@@ -52,15 +57,22 @@ class GraphPricePredictor():
         for preds_batch in preds_iter:
             for pred in preds_batch:
                 yield pred
+                
+    def predict(self, dataloader):
+        return self.trainer.predict(self.model, dataloader)
+    
+    def get_graphs_fn(self, graphs_list):
+        return graphs_list
 
     def predictListOfSmiles(self, smiles_list):
         smiles_list = list(smiles_list)
-        graphs_list = list(filter(None.__ne__, map(self.prepare_smi,  enumerate(smiles_list) )))
-        graphs_fn = lambda : graphs_list
+        graphs_list = list(filter(None.__ne__, map(self.prepare_smi, enumerate(smiles_list))))
+
+        # Use the GraphListWrapper instead of lambda
+        graphs_fn = GraphListWrapper(graphs_list)
         dataset = MyIterableDataset(graphs_fn, self.n_cpus)
         dataloader = DataLoader(dataset=dataset, batch_size=self.batch_size, collate_fn=Batch.from_data_list,
                                 num_workers=self.n_cpus)
-
         preds = self.trainer.predict(self.model, dataloader)
         n_smiles = len(smiles_list)
         all_preds = np.nan * np.ones(n_smiles)

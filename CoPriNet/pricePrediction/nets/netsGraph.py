@@ -7,10 +7,10 @@ from torch import nn
 import torch.nn.functional as F
 import pytorch_lightning as pl
 
-from CoPriNet.pricePrediction import config
-from CoPriNet.pricePrediction.ArgParser_base import ArgParseable
-from CoPriNet.pricePrediction.config import USE_FEATURES_NET
-from CoPriNet.pricePrediction.nets.FDS_imbalance import FDS
+from pricePrediction import config
+from pricePrediction.ArgParser_base import ArgParseable
+from pricePrediction.config import USE_FEATURES_NET
+from pricePrediction.nets.FDS_imbalance import FDS
 
 
 class PricePredictorModule(pl.LightningModule, ArgParseable):
@@ -78,12 +78,12 @@ class PricePredictorModule(pl.LightningModule, ArgParseable):
 
 
         if gnn_class == "GNN_PNAConv":
-            from CoPriNet.pricePrediction.nets.basicArchitectures import GNN_PNAConv as GNN
+            from pricePrediction.nets.basicArchitectures import GNN_PNAConv as GNN
         elif gnn_class == "GNN_AttentiveFP":
-            from CoPriNet.pricePrediction.nets.basicArchitectures import GNN_AttentiveFP  as GNN
+            from pricePrediction.nets.basicArchitectures import GNN_AttentiveFP  as GNN
         elif gnn_class == "QdolarAR":
             assert USE_FEATURES_NET
-            from CoPriNet.pricePrediction.nets.basicArchitectures import QdolarAR as GNN
+            from pricePrediction.nets.basicArchitectures import QdolarAR as GNN
 
         else:
             raise ValueError("Error, gnn_class not supported")
