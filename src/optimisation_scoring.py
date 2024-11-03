@@ -29,7 +29,6 @@ class OptimisationScorer:
         self.predictor = predictor
         self.args = args
         self.cost_cache = {}
-        self.stock = stock if stock is not None else None
         self.use_coprinet = use_coprinet
         
         
@@ -38,8 +37,8 @@ class OptimisationScorer:
             self.tree_cost = self.coprinet_tree_cost
             print('Using coprinet model for cost prediction.')
         else:
-            if self.stock != None:
-                self.stock = self.stock
+            if stock != None:
+                self.stock = stock
                 self.tree_cost = self.stock_tree_cost
                 print('Using stock library for cost prediction.')
             else:
@@ -67,9 +66,8 @@ class OptimisationScorer:
         :param tree: the tree to calculate the cost for
         :return: the cost of the tree
         """
-        stock_dict = {k: v for k, v in self.stock[['inchi_key', 'price']].values}
         rxn = ReactionTree.from_dict(tree)
-        stock_cost = self._calculate_stock_cost(rxn, stock_dict)
+        stock_cost = self._calculate_stock_cost(rxn)
         cost = 0.7 * stock_cost + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
         return cost
     
@@ -97,11 +95,11 @@ class OptimisationScorer:
         difference_score = 0
         
         r1_costs = {smi: [self.tree_cost(tree) 
-                        for tree in r1_solved[r1_solved['target'] == smi]['trees'].values[0][0]]
+                        for tree in r1_solved[r1_solved['target'] == smi]['solved_trees'].values[0]]
                     for smi in both_solved_smiles}
         
         r2_costs = {smi: [self.tree_cost(tree) 
-                        for tree in r2_solved[r2_solved['target'] == smi]['trees'].values[0][0]]
+                        for tree in r2_solved[r2_solved['target'] == smi]['solved_trees'].values[0]]
                     for smi in both_solved_smiles}
         
         # Calculate difference score
@@ -121,7 +119,7 @@ class OptimisationScorer:
         extra_solved_score = 0
         if extra_solved:
             for smi in extra_solved:
-                r2_smi_top_trees = r2_solved[r2_solved['target'] == smi]['trees'].values[0][0]
+                r2_smi_top_trees = r2_solved[r2_solved['target'] == smi]['solved_trees'].values[0]
                 r2_cost = [self.tree_cost(tree) for tree in r2_smi_top_trees]
                 if min(r2_cost) < np.mean(org_solved_costs):
                     extra_solved_score += 1
@@ -151,30 +149,42 @@ class OptimisationScorer:
         :return: the routes DataFrame with only solved routes
         """
         solved_routes = routes[routes['is_solved'] == True]
-
+        
+        all_mol_trees = []
         for i, row in solved_routes.iterrows():
             trees = row['trees']
             solved_trees = []
-            for tree in trees[0]:
-                if ReactionTree.from_dict(tree).is_solved:
-                    solved_trees.append(tree)
-            solved_routes.at[i, 'trees'] = [solved_trees]
+            
+            if isinstance(trees[0], list):
+                for tree in trees[0]:
+                    if ReactionTree.from_dict(tree).is_solved:
+                        solved_trees.append(tree)
+            elif isinstance(trees[0], dict):
+                for tree in trees:
+                    if ReactionTree.from_dict(tree).is_solved:
+                        solved_trees.append(tree)
+            all_mol_trees.append(solved_trees)
+            # solved_routes.at[i, 'trees'] = solved_trees
+            
+        # set dataframe column to the new list of solved trees
+        solved_routes['solved_trees'] = all_mol_trees
+        
+        print(solved_routes.head())
         return solved_routes
     
-    def _calculate_stock_cost(route: ReactionTree, stock: dict, not_in_stock=10.0) -> float:
+    def _calculate_stock_cost(self, route: ReactionTree, not_in_stock=1.08) -> float:
         """
         Calculate the cost of a route using the stock library
         
         :param route: the route to calculate the cost for
-        :param stock: the stock library
         """
         leaves = list(route.leafs())
         total_cost = 0
         not_in_stock_multiplier = 10
         for leaf in leaves:
             inchi = leaf.inchi_key
-            if inchi in stock:
-                c = stock[inchi]
+            if inchi in self.stock:
+                c = self.stock[inchi]
                 total_cost += c
             else:
                 total_cost += not_in_stock_multiplier
@@ -198,6 +208,10 @@ if __name__ == "__main__":
     # load yaml config file
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
+        
+    # load stock
+    stock = pd.read_hdf(config['stock'], 'table')
+    stock_dict = {inchi: price for inchi, price in zip(stock['inchi_key'], stock['price'])}
     
     # import results
     std = pd.read_hdf(args.pre, 'table')
@@ -206,14 +220,17 @@ if __name__ == "__main__":
     
     # load price predictior
     predictor = GraphPricePredictor(
-        use_coprinet=True if config['coprinet_model_path'] != None else False,
         model_path=config['coprinet_model_path'],
         n_cpus=args.ncpus,
         n_gpus=args.ngpus
     )
     print('Generated predictor.')
     
-    scorer = OptimisationScorer(predictor=predictor, use_coprinet=True)
+    scorer = OptimisationScorer(
+        predictor=predictor, 
+        use_coprinet=True if config['use_coprinet'] == True else False,
+        stock = stock_dict,
+        )
     cost_difference, extra_price, extra_solved = scorer.compare_opt_performance(std, opt)
     
     with open(args.output, 'w') as f:

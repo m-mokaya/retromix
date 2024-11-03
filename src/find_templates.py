@@ -6,6 +6,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import dotenv
+import gzip
 
 # load environment variables
 dotenv.load_dotenv()
@@ -50,13 +51,20 @@ if __name__ == "__main__":
     #     output=args.output,
     #     api_key=os.getenv('POSTERA_API_KEY')
     # ).find_routes()
-    with open(os.path.join(args.output, 'pos_routes.json'), 'r') as f:
+    with open(os.path.join(args.output, 'pos_routes_aiz_format.json'), 'r') as f:
         pos_routes = json.load(f)
+        
+    with gzip.open(config['template_library'], 'r') as f:
+        templates = pd.read_csv(f, sep='\t')
+        
+    canonical_template_library = templates['canonical_smarts'].tolist()
     
     # template analysis
     analyser = AizPosTemplateAnalyser(
-        template_library=config['template_library']
+        template_library=canonical_template_library
     )
+    
+    
     
     popular_templates = analyser.find_popular_templates(aiz_routes, stock_dict)
     with open(os.path.join(args.output, 'popular_templates.json'), 'w') as f:

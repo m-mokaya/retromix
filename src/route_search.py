@@ -36,6 +36,7 @@ if __name__ == "__main__":
             
         optimised_aiz = AizRouteFinder(
             configfile=os.path.join(args.output_dir, f'{args.type}_aiz_config.yml'),
+            configdict = new_aiz_config,
             smiles=smiles,
             nproc=args.nproc,
         ).find_routes()

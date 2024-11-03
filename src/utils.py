@@ -53,7 +53,8 @@ def get_solved_trees(routes: pd.DataFrame) -> list[list[dict]]:
     :return: the solved trees
     """
     solved_routes = routes[routes['is_solved'] == True]
-    trees = solved_routes['trees'].tolist() 
+    trees = solved_routes['trees'].tolist()
+    trees = [i[0] for i in trees]    
     
     solved_trees = []
     for mol in trees:
@@ -140,7 +141,7 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
     :return: A modified dictionary with duplicate template counts processed.
     :rtype: dict
     """
-
+    
     processed_counts = {}
     processed_templates = set()
 
@@ -165,7 +166,6 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
                     processed_counts[template] = total_count
 
     return processed_counts
-
 
 def generate_aiz_configs(config, type, templates):
     """

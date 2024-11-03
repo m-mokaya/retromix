@@ -1,9 +1,9 @@
 import os
 import sys
-
 import pandas as pd
 import numpy as np
-import multiprocessing as mp
+from joblib import Parallel, delayed
+
 
 sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
@@ -12,58 +12,46 @@ from route_finders.route_finder import RouteFinder
 from aizynthfinder.aizynthfinder import AiZynthFinder
 
 class AizRouteFinder(RouteFinder):
-    def __init__(self, configfile, smiles, nproc):
+    def __init__(self, configfile, smiles, nproc, configdict=None):
         self.configfile = configfile
         self.smiles = smiles
         self.nproc = nproc
-        
+        self.configdict = configdict
+       
+    def process_smiles(self, smi, finder):
+        finder.target_smiles = smi
+        finder.prepare_tree()
+        search_time = finder.tree_search()
+        finder.build_routes()
+        stats = finder.extract_statistics()
+        stats['trees'] = finder.routes.dicts
+        return stats
+
     def worker(self, chunk):
-        """
-        Find retrosynthetic routes for a list of SMILES strings
-        
-        :param smiles (list): list of SMILES strings
+        if self.configdict is None:
+            finder = AiZynthFinder(configfile=self.configfile)
+        else:
+            finder = AiZynthFinder(configdict=self.configdict)
 
-        :return dict: dictionary with the results
-        """
-
-        finder = AiZynthFinder(configfile = self.configfile)
-        finder.stock.select('molport')  # select an appriopriate stock
-        finder.expansion_policy.select('uspto')     # select an appriopriate expansion policy
+        finder.stock.select('molport')
+        finder.expansion_policy.select('uspto')
 
         results = []
-
         for smi in chunk:
-            finder.target_smiles = smi
-            finder.prepare_tree()
-            search_time = finder.tree_search()
-            finder.build_routes()
-            stats = finder.extract_statistics()
-            stats['trees'] = finder.routes.dicts
+            try:
+                stats = self.process_smiles(smi, finder)
+                results.append(stats)
+            except Exception as e:
+                print('Error processing %s: %s', smi, e)
 
-            solved_str = 'is_solved' if stats['is_solved'] else 'is not solved'
-            print(f'Done with {smi} in {search_time:.3} s and {solved_str}')
+        return pd.DataFrame(results)
 
-            smi_results = {}
-            
-            for key, value in stats.items():
-                if key in smi_results:
-                    smi_results[key].append(value)
-                else:
-                    smi_results[key] = [value]
-            
-            results.append(pd.DataFrame(smi_results))
-        
-        return pd.concat(results)
-        
-    def find_routes(self): 
-        """
-        Find retrosynthetic routes for the target molecules.
-        
-        :return pd.DataFrame: A pandas DataFrame containing the results in Aiz Format.
-        """
-        with mp.Pool(self.nproc) as pool:
-            results = pool.map(self.worker, self.split_smiles())
+    def find_routes(self):
+        if self.nproc == 1:
+            results = self.worker(self.smiles)
+        else:
+            chunks = self.split_smiles()
+            results = Parallel(n_jobs=self.nproc)(delayed(self.worker)(chunk) for chunk in chunks)
+
         return pd.concat(results)
 
-
-    

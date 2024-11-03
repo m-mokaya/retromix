@@ -1,4 +1,4 @@
-name: aizynth-dev
+name: retromix
 channels:
 - conda-forge
 - pytorch

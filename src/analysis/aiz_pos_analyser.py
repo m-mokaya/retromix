@@ -38,9 +38,15 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
         template_counts = pd.Series(templates).value_counts().to_dict()
         all_template_counts = pd.Series(all_templates).value_counts().to_dict()
         
-        # combine duplicate counts in each dictionary
-        template_counts = utils.process_duplicate_templates(template_counts)
-        all_template_counts = utils.process_duplicate_templates(all_template_counts)
+        # check all templates are in all_template_counts
+        for template in template_counts.keys():
+            if template not in all_template_counts:
+                print(f"Template {template} not in all_template_counts")
+            
+        
+        # # combine duplicate counts in each dictionary
+        # template_counts = utils.process_duplicate_templates(template_counts)
+        # all_template_counts = utils.process_duplicate_templates(all_template_counts)
         
         template_scores = {template: used_count/all_template_counts[template] for template, used_count in template_counts.items()}
         sorted_template_scores = {k: v for k, v in sorted(template_scores.items(), key=lambda item: item[1], reverse=True)}
@@ -62,8 +68,14 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
         all_aiz_templates = [list(utils.findkeys(route, 'template')) for mol in aiz_routes for route in mol]
         all_aiz_templates = [item for sublist in all_aiz_templates for item in sublist]
         all_aiz_templates = [canon_reaction_smarts(template) for template in all_aiz_templates]
-        all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]
-        all_pos_templates = [item for sublist in all_pos_templates for item in sublist]
+        # all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]
+        # all_pos_templates = [item for sublist in all_pos_templates for item in sublist]
+        
+        # collect all pos templates
+        all_pos_templates = []
+        for mol, routes in pos_data.items():
+            for route in routes:
+                all_pos_templates.extend(list(utils.findkeys(route, 'template')))
          
         templates = []
         for mol, pos_trees in pos_data.items():
@@ -78,19 +90,21 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
                 for i in cheaper_routes:
                     templates.extend(list(utils.findkeys(i, 'template')))
             else:
-                templates.extend([list(utils.findkeys(i, 'template')) for i in pos_trees])
+                pos_costs = [utils.calculate_tree_cost(tree, stock) for tree in pos_trees]
+                cheapest_route  = pos_trees[np.argmin(pos_costs)]
+                templates.extend(list(utils.findkeys(cheapest_route, 'template')))
+                    
                 
         print(f"Unused templates: {len(templates)} of which {len(set(templates))} are unique")
       
-        
         all_pos_template_counts = pd.Series(all_pos_templates).value_counts().to_dict()
         template_counts = pd.Series(templates).value_counts().to_dict()
-        all_pos_template_counts = utils.process_duplicate_templates(all_pos_template_counts)
+        all_pos_template_counts = utils.process_duplicate_templates(all_pos_template_counts, combine=False)
         template_counts = utils.process_duplicate_templates(template_counts)
         
         template_counts = {template: count for template, count in template_counts.items() if canon_reaction_smarts(template) not in all_aiz_templates}
         
-        pos_template_scores = {template: used_count/all_pos_template_counts[template] for template, used_count in template_counts.items()}
+        pos_template_scores = {template: (used_count/all_pos_template_counts[template]) for template, used_count in template_counts.items()}
         sorted_template_scores = {k: v for k, v in sorted(pos_template_scores.items(), key=lambda item: item[1], reverse=True)}
         return sorted_template_scores
     

@@ -2,3 +2,5 @@
 test_results/
 aizynthfinder/aizynthfinder/data/uspto_*
 aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
+paper/
+
