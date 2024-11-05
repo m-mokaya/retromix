@@ -49,9 +49,9 @@ class AizRouteFinder(RouteFinder):
     def find_routes(self):
         if self.nproc == 1:
             results = self.worker(self.smiles)
+            return results
         else:
             chunks = self.split_smiles()
             results = Parallel(n_jobs=self.nproc)(delayed(self.worker)(chunk) for chunk in chunks)
-
-        return pd.concat(results)
+            return pd.concat(results)
 
