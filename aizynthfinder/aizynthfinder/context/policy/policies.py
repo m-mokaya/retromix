@@ -123,6 +123,8 @@ class ExpansionPolicy(ContextCollection):
             possible_actions.append(new_action)
             priors.append(new_prior)
             
+            
+        print(f"Novel templates integrated: {len(novel_templates)}", flush=True)    
         # normalise and reorder the priors
         norm_priors = [float(i)/sum(priors) for i in priors]
         possible_actions = [x for _, x in sorted(zip(norm_priors, possible_actions), key=lambda pair: pair[0], reverse=True)]
