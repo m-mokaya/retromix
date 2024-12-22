@@ -1,0 +1,25 @@
+expansion: 
+  uspto:
+  - /vols/opig/users/mokaya/aizynthtrain/experiments/01_random_dataset/data/uspto_random_expansion.onnx
+  - /vols/opig/users/mokaya/aizynthtrain/experiments/01_random_dataset/data/uspto_random_unique_templates.csv.gz
+filter:
+  uspto: aizynthfinder/aizynthfinder/data/uspto_filter_model.onnx
+search:
+  algorithm: mcts
+  algorithm_config:
+    C: 1.4
+    default_prior: 0.5
+    prune_cycles_in_search: true
+    search_rewards:
+    - state score
+    use_prior: true
+  custom_templates: lfs/canonical_smarts.json
+  exclude_target_from_stock: true
+  iteration_limit: 100
+  max_transforms: 6
+  optimisation_type: novel
+  return_first: false
+  time_limit: 120
+stock:
+  molport: aizynthfinder/aizynthfinder/data/molport_blocks_stock.hdf5
+  zinc: aizynthfinder/aizynthfinder/data/zinc_stock.hdf5

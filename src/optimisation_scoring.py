@@ -17,7 +17,7 @@ from aizynthfinder.reactiontree import ReactionTree # type: ignore
 from pricePrediction.predict.predict import GraphPricePredictor # type: ignore
 
 class OptimisationScorer:
-    def __init__(self, stock: dict = None, predictor: GraphPricePredictor = None, use_coprinet: bool = False):
+    def __init__(self, stock: dict = None, predictor: GraphPricePredictor = None, use_coprinet: bool = False, scoring_type: str = 'state'):
         """
         Initialise the OptimisationScorer to calculate POS score. 
         
@@ -33,10 +33,13 @@ class OptimisationScorer:
         
         
         # Set the tree cost function
+        if scoring_type == 'state':
+            self.tree_cost = self.state_tree_cost
+            print('Using state based cost prediction.')
         if self.use_coprinet == True and self.predictor is not None:
             self.tree_cost = self.coprinet_tree_cost
             print('Using coprinet model for cost prediction.')
-        else:
+        if scoring_type == 'cost':
             if stock != None:
                 self.stock = stock
                 self.tree_cost = self.stock_tree_cost
@@ -70,6 +73,17 @@ class OptimisationScorer:
         stock_cost = self._calculate_stock_cost(rxn)
         cost = 0.7 * stock_cost + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
         return cost
+    
+    def state_tree_cost(self, tree):
+        """
+        Calculate the cost of a tree using the number of states
+        
+        :param tree: the tree to calculate the cost for
+        :return: the cost of the tree
+        """
+        rxn = ReactionTree.from_dict(tree)
+        score = 0.5 * len(list(rxn.reactions())) + 0.5 * len(list(rxn.leafs()))
+        return score
     
     def compare_opt_performance(self, routes_1, routes_2):
         """
@@ -203,6 +217,7 @@ if __name__ == "__main__":
     parser.add_argument('--config', type=str, required=True, help='Path to the configuration file.')
     parser.add_argument('--ngpus', type=int, default=0, help='Number of GPUs to use.')
     parser.add_argument('--output', type=str, required=True, help='Path to the output file.')
+    parser.add_argument('--scoring_type', type=str, default='state', choices=['state', 'cost', 'coprinet'], help='The type of scoring to use.')
     args = parser.parse_args()
     
     # load yaml config file
@@ -218,18 +233,22 @@ if __name__ == "__main__":
     opt = pd.read_hdf(args.post, 'table')
     print('Results imported.')
     
-    # load price predictior
-    predictor = GraphPricePredictor(
-        model_path=config['coprinet_model_path'],
-        n_cpus=args.ncpus,
-        n_gpus=args.ngpus
-    )
-    print('Generated predictor.')
+    if args.scoring_type == 'coprinet':
+        # load price predictior
+        predictor = GraphPricePredictor(
+            model_path=config['coprinet_model_path'],
+            n_cpus=args.ncpus,
+            n_gpus=args.ngpus
+        )
+        print('Generated predictor.')
+    else:
+        predictor = None
     
     scorer = OptimisationScorer(
         predictor=predictor, 
         use_coprinet=True if config['use_coprinet'] == True else False,
         stock = stock_dict,
+        scoring_type=args.scoring_type,
         )
     cost_difference, extra_price, extra_solved = scorer.compare_opt_performance(std, opt)
     

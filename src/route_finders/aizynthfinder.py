@@ -7,6 +7,10 @@ from joblib import Parallel, delayed
 
 sys.path.append(os.getcwd())
 sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
+if '/data/pegasus/not-backed-up/mokaya/aizynthfinder' in sys.path:
+    sys.path.remove('/data/pegasus/not-backed-up/mokaya/aizynthfinder')
+for path in sys.path:
+    print(path)
 
 from route_finders.route_finder import RouteFinder
 from aizynthfinder.aizynthfinder import AiZynthFinder

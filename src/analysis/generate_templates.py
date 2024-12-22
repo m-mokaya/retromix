@@ -847,19 +847,19 @@ def generate_templates(reaction):
     if type(reactants) == str and type(products) == str:
         reactants = reactants
         products = products
-        rxn = f"{reactants}>>{products}"
+        rxn = f"{products}>>{reactants}"
     elif type(reactants) == list and type(products) == str:
         reactants = '.'.join(reactants)
         products = products
-        rxn = f"{reactants}>>{products}"
+        rxn = f"{products}>>{reactants}"
     elif type(reactants) == str and type(products) == list:
         reactants = reactants
         products = '.'.join(products)
-        rxn = f"{reactants}>>{products}"
+        rxn = f"{products}>>{reactants}"
     elif type(reactants) == list and type(products) == list:
         reactants = '.'.join(reactants)
         products = '.'.join(products)
-        rxn = f"{reactants}>>{products}"
+        rxn = f"{products}>>{reactants}"
     
     mapped_rxn = rxn_mapper.get_attention_guided_atom_maps([rxn])[0]['mapped_rxn']
     

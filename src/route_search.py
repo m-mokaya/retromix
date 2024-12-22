@@ -2,10 +2,15 @@ import os
 import sys
 import json
 import yaml
+import random
 import argparse
 
 sys.path.append(os.getcwd())
-
+# # sys.path.remove('/data/pegasus/not-backed-up/mokaya/aizynthfinder')
+# for path in sys.path:
+#     print(path)
+    
+    
 from src.route_finders.aizynthfinder import AizRouteFinder
 from src.utils import generate_aiz_configs
 
@@ -36,8 +41,8 @@ if __name__ == "__main__":
             
         optimised_aiz = AizRouteFinder(
             configfile=os.path.join(args.output_dir, f'{args.type}_aiz_config.yml'),
-            configdict = new_aiz_config,
-            smiles=smiles,
+            # configdict = new_aiz_config,
+            smiles=smiles[random.randint(0, len(smiles))],
             nproc=args.nproc,
         ).find_routes()
         optimised_aiz.to_hdf(os.path.join(args.output_dir, f'{args.type}_aiz_routes.hdf5'), 'table')
@@ -45,7 +50,7 @@ if __name__ == "__main__":
     else:
         print('Finding retrosynthetic routes without optimisation...')
         aiz_routes = AizRouteFinder(
-            config_file=config['aizynthfinder_config'],
+            configfile=config['aizynthfinder_config'],
             smiles=smiles,
             nproc=args.nproc,
         ).find_routes()
