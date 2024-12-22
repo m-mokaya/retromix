@@ -1,0 +1,6 @@
+#!/data/localhost/not-backed-up/mokaya/miniconda3/envs/aizynth-dev/bin/python
+import sys
+from aizynthfinder.tools.download_public_data import main
+
+if __name__ == '__main__':
+    sys.exit(main())

@@ -54,7 +54,9 @@ def get_solved_trees(routes: pd.DataFrame) -> list[list[dict]]:
     """
     solved_routes = routes[routes['is_solved'] == True]
     trees = solved_routes['trees'].tolist()
-    trees = [i[0] for i in trees]    
+    
+    if isinstance(trees[0][0], list):
+        trees = [i[0] for i in trees]    
     
     solved_trees = []
     for mol in trees:

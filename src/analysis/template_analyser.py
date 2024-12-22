@@ -5,9 +5,9 @@ import argparse
 from utils import canonicalise_smarts
 
 class TemplateAnalyser:
-    def __init__(self, template_library: list[str]):
+    def __init__(self, template_library: list[str], scoring_type: str):
         self.template_library = template_library
-        
+        self.scoring_type = scoring_type
     
     def find_popular_templates(self, route_data: list, stock: dict) -> list[str]:
         """
