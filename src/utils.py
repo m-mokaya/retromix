@@ -166,7 +166,7 @@ def process_duplicate_templates(template_counts: dict, combine: bool = True) -> 
             for template in template_counts:
                 if template == template1 or reaction_template_similarity(template1, template) == 1.0:
                     processed_counts[template] = total_count
-
+                    
     return processed_counts
 
 def generate_aiz_configs(config, type, templates):

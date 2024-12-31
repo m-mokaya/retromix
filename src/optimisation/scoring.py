@@ -9,6 +9,8 @@ import numpy as np
 import multiprocessing
 from functools import partial
 
+from rdkit import Chem
+
 # Add the current working directory to sys.path
 sys.path.append(os.getcwd())
 
@@ -76,15 +78,15 @@ class Scorer:
         """
         leaves = list(route.leafs())
         total_cost = 0
-        not_in_stock_multiplier = 10
         for leaf in leaves:
-            inchi = leaf.inchi_key
-            if inchi in stock:
-                c = stock[inchi]
+            inchi_key = Chem.MolToInchiKey(Chem.MolFromSmiles(leaf.smiles))
+            if inchi_key in stock:
+                c = stock[inchi_key]
                 total_cost += c
             else:
-                total_cost += not_in_stock_multiplier
-                print(str(leaf)+' not in stock')
+                total_cost += not_in_stock
+                print(str(leaf)+' not in stock. Route not solved.')
+                return 1000
         return total_cost
         
     

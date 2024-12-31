@@ -88,6 +88,7 @@ class AizTemplateAnalyser(TemplateAnalyser):
             all_tb_templates = [list(utils.findkeys(route, 'template')) for mol in tb_routes for route in mol]
             all_tf_templates = [list(utils.findkeys(route, 'template')) for mol in tf_routes for route in mol] 
             all_tf_templates = [item for sublist in all_tf_templates for item in sublist] 
+            all_tf_templates = [canon_reaction_smarts(template) for template in all_tf_templates]
             
             templates = []
             for mol in solved_both:
@@ -112,23 +113,35 @@ class AizTemplateAnalyser(TemplateAnalyser):
                     templates.extend(list(utils.findkeys(route, 'template')))
                     
             for mol in solved_tf:
-                tf_results = tf_solved[tf_solved['target'] == mol]
-                tf_r = utils.get_solved_trees(tf_results)
-                tf_r = [item for sublist in tf_r for item in sublist]
-                
-                templates.extend(list(utils.findkeys(tf_r, 'template')))
+                if mol not in solved_both:
+                    tf_results = tf_solved[tf_solved['target'] == mol]
+                    tf_r = utils.get_solved_trees(tf_results)
+                    tf_r = [item for sublist in tf_r for item in sublist]
+                    
+                    templates.extend(list(utils.findkeys(tf_r, 'template')))
         
             print(f"Unused templates: {len(templates)} of which {len(set(templates))} are unique")
             
+            templates = [canon_reaction_smarts(template) for template in templates]
+            
             template_counts = pd.Series(templates).value_counts().to_dict()
+   
             all_tf_template_counts = pd.Series(all_tf_templates).value_counts().to_dict()
-            all_tf_template_counts = utils.process_duplicate_templates(all_tf_template_counts, combine=False)
-            template_counts = utils.process_duplicate_templates(template_counts, combine=True)
+            # all_tf_template_counts = utils.process_duplicate_templates(all_tf_template_counts, combine=False)
+            # template_counts = utils.process_duplicate_templates(template_counts, combine=True)
+            
+            
             
             template_counts = {template: count for template, count in template_counts.items() if canon_reaction_smarts(template) not in all_tb_templates}
             
             template_scores = {template: count/all_tf_template_counts[template] for template, count in template_counts.items()}
+            
             sorted_template_scores = {k: v for k, v in sorted(template_scores.items(), key=lambda item: item[1], reverse=True)}
+            
+            # normalise scores to max of 1.0
+            max_score = max(list(sorted_template_scores.values()))
+            sorted_template_scores = {k: v/max_score for k, v in sorted_template_scores.items()}
+                        
             return sorted_template_scores
                     
                 
