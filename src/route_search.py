@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import yaml
-import random
 import argparse
 
 sys.path.append(os.getcwd())
@@ -27,6 +26,7 @@ if __name__ == "__main__":
     
     with open(args.smiles, 'r') as f:
         smiles = f.readlines()
+    smiles = list(set(smiles))
     print('Loaded target SMILES.')
     
     with open(args.config, 'r') as f:
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         optimised_aiz = AizRouteFinder(
             configfile=os.path.join(args.output_dir, f'{args.type}_aiz_config.yml'),
             # configdict = new_aiz_config,
-            smiles=smiles[random.randint(0, len(smiles))],
+            smiles=smiles,
             nproc=args.nproc,
         ).find_routes()
         optimised_aiz.to_hdf(os.path.join(args.output_dir, f'{args.type}_aiz_routes.hdf5'), 'table')
