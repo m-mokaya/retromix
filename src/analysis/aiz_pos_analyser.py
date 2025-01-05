@@ -93,6 +93,17 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
             for route in routes:
                 all_pos_templates.extend(list(utils.findkeys(route, 'template')))
          
+        all_aiz_templates = [item for sublist in all_aiz_templates for item in sublist]
+        all_aiz_templates = [canon_reaction_smarts(template) for template in all_aiz_templates]
+        # all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]
+        # all_pos_templates = [item for sublist in all_pos_templates for item in sublist]
+        
+        # collect all pos templates
+        all_pos_templates = []
+        for mol, routes in pos_data.items():
+            for route in routes:
+                all_pos_templates.extend(list(utils.findkeys(route, 'template')))
+         
         templates = []
         for mol, pos_trees in pos_data.items():
             if mol in aiz_solved_smiles:
@@ -123,8 +134,10 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
                        
         print(f"Unused templates: {len(templates)} of which {len(set(templates))} are unique")
       
+      
         all_pos_template_counts = pd.Series(all_pos_templates).value_counts().to_dict()
         template_counts = pd.Series(templates).value_counts().to_dict()
+        all_pos_template_counts = utils.process_duplicate_templates(all_pos_template_counts, combine=False)
         all_pos_template_counts = utils.process_duplicate_templates(all_pos_template_counts, combine=False)
         template_counts = utils.process_duplicate_templates(template_counts)
         
