@@ -1,9 +1,11 @@
+retromix_dir = "/Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix"
+
 import os
 import sys
 import yaml
 import pandas as pd
 
-sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
+sys.path.append(os.path.join(retromix_dir, 'aizynthfinder'))
 
 from rdcanon import canon_reaction_smarts
 from rdkit.Chem import rdChemReactions, DataStructs
@@ -185,6 +187,10 @@ def generate_aiz_configs(config, type, templates):
     if type in ['overlooked', 'popular', 'novel']:
         config['search']['optimisation_type'] = type
         config['search']['custom_templates'] = templates
+        
+        if type == 'novel':
+            config['expansion']['uspto']['novel_template_path'] = templates
+        
         return config
     else:
         print('Invalid template type')

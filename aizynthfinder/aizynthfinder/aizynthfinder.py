@@ -209,7 +209,8 @@ class AiZynthFinder:
         # This is for type checking, prepare_tree is creating it.
         assert self.tree is not None
         self.search_stats = {"returned_first": False, "iterations": 0}
-
+        
+        
         time0 = time.time()
         i = 1
         self._logger.debug("Starting search")
@@ -217,6 +218,7 @@ class AiZynthFinder:
 
         if show_progress:
             pbar = tqdm(total=self.config.search.iteration_limit, leave=False)
+
 
         while (
             time_past < self.config.search.time_limit
@@ -228,9 +230,10 @@ class AiZynthFinder:
 
             try:
                 is_solved = self.tree.one_iteration()
+                print(f"iteration {i}")
             except StopIteration:
                 break
-
+            
             if is_solved and "first_solution_time" not in self.search_stats:
                 self.search_stats["first_solution_time"] = time.time() - time0
                 self.search_stats["first_solution_iteration"] = i
@@ -241,7 +244,7 @@ class AiZynthFinder:
                 break
             i = i + 1
             time_past = time.time() - time0
-
+        
         if show_progress:
             pbar.close()
         time_past = time.time() - time0

@@ -40,7 +40,7 @@ if __name__ == "__main__":
             smiles=smiles,
             nproc=args.nproc,
         ).find_routes()
-        optimised_aiz.to_hdf(os.path.join(args.output_dir, f'{args.type}_aiz_routes.hdf5'), 'table')
+        optimised_aiz.to_hdf(os.path.join(args.output_dir, f'{args.type}_aiz_routes_test.hdf5'), 'table')
         
     else:
         print('Finding retrosynthetic routes without optimisation...')
@@ -50,6 +50,3 @@ if __name__ == "__main__":
             nproc=args.nproc,
         ).find_routes()
         aiz_routes.to_hdf(os.path.join(args.output_dir, 'aiz_routes.hdf5'), 'table')
-    
-    
-    

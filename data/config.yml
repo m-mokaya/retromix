@@ -3,6 +3,7 @@ policy:
     uspto:
       - aizynthfinder/aizynthfinder/data/uspto_model.onnx
       - aizynthfinder/aizynthfinder/data/uspto_templates.csv.gz
+      novel_template_path: /Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix/lfs/templates.json
     ringbreaker:
       - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_model.onnx
       - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_templates.csv.gz     

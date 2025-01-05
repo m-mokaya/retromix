@@ -28,7 +28,7 @@ from aizynthfinder.utils.exceptions import PolicyException
 from aizynthfinder.utils.loading import load_dynamic_class
 
 if TYPE_CHECKING:
-    from aizynthfinder.chem import TreeMolecule
+    from aizynthfinder.chem import TreeMolecule, TemplatedRetroReaction
     from aizynthfinder.chem.reaction import RetroReaction
     from aizynthfinder.context.config import Configuration
     from aizynthfinder.utils.type_utils import Any, Dict, List, Sequence, Tuple
@@ -71,7 +71,7 @@ class ExpansionPolicy(ContextCollection):
         else:
             raise PolicyException("No optimisation data for novel templates")
             
-    def _check_novel_compatibility(self, novel_templates: list[tuple], molecules: TreeMolecule) -> list[str]:
+    def _check_novel_compatibility(self, novel_templates: list[tuple], molecules: TreeMolecule) -> dict[TreeMolecule, list[str]]:
         """
         Check if the novel templates are compatible with the target molecules. 
         
@@ -79,20 +79,23 @@ class ExpansionPolicy(ContextCollection):
         :param molecules: the target molecules
         :return: the compatible templates
         """
-        compatible_templates = []
+        found = False
+        compatible_templates = {}
         for mol in molecules:
+            compatible_templates[mol] = []
             for rxn, score in novel_templates:
                 reaction = rdc.rdchiralReaction(rxn)
                 reactants = rdc.rdchiralReactants(mol.smiles)
                 try:
                     outcomes = rdc.rdchiralRun(reaction, reactants)
                     if outcomes != None:
-                        compatible_templates.append(rxn)
+                        compatible_templates[mol].append(rxn)
+                        found = True
                 except:
                     continue
-            return compatible_templates
+            return compatible_templates, found
     
-    def _integrate_novel_templates(self, possible_actions, priors, novel_templates):
+    def _integrate_novel_templates(self, possible_actions, priors, compatible_templates, novel_templates, molecules: Sequence[TreeMolecule]):
         """
         Integrate novel templates into the possible actions.
         
@@ -104,27 +107,39 @@ class ExpansionPolicy(ContextCollection):
         max_prior = max(priors) if priors else 0.0
         min_prior = min(priors) if priors else 0.0
         prior_range = max_prior - min_prior
+       
+        print(f'BEFORE: Total actions: {len(possible_actions)}', flush=True)
         
-        for template, score in novel_templates:
-            new_action = possible_actions[0].copy()     # copy existing actions as a base
-            new_action.metadata['template'] = template
-            new_action.metadata['opt_score'] = score
-            new_action.metadata['classification'] = 'novel'
-            new_action.metadata['policy_name'] = 'external'
+        for mol, (molecule, comp_templates) in enumerate(compatible_templates.items()):
+            for temp in comp_templates:
+                score = [i for i in novel_templates if i[0] == temp][1]
+                metadata = {
+                    'template': temp,
+                    'classification': 'novel',
+                    'policy_name': 'external',
+                    'opt_score': score,
+                }
+                new_action = TemplatedRetroReaction(
+                    mol, 
+                    smarts=temp,
+                    metadata=metadata,
+                    use_rdchiral=self._config.use_rdchiral,
+                )
             
-            # estimate prior for novel template based on opt score, prior range and min prior
-            estimated_prior = min_prior + (score * prior_range)
+                # estimate prior for novel template based on opt score, prior range and min prior
+                estimated_prior = min_prior + (score * prior_range)
+                
+                # calculate opt factor, and new prior
+                optimisation_factor = score * prior_range
+                new_prior = estimated_prior + optimisation_factor
+                new_action.metadata['policy_probability'] = new_prior
+                
+                possible_actions.append(new_action)
+                priors.append(new_prior)
+                
+        print(f"Novel templates integrated: {len(novel_templates)}", flush=True)
+        print(f"AFTER: Total actions: {len(possible_actions)}", flush=True)
             
-            # calculate opt factor, and new prior
-            optimisation_factor = score * prior_range
-            new_prior = estimated_prior + optimisation_factor
-            new_action.metadata['policy_probability'] = new_prior
-            
-            possible_actions.append(new_action)
-            priors.append(new_prior)
-            
-            
-        print(f"Novel templates integrated: {len(novel_templates)}", flush=True)    
         # normalise and reorder the priors
         norm_priors = [float(i)/sum(priors) for i in priors]
         possible_actions = [x for _, x in sorted(zip(norm_priors, possible_actions), key=lambda pair: pair[0], reverse=True)]
@@ -188,11 +203,11 @@ class ExpansionPolicy(ContextCollection):
             templates = self._get_optimised_templates()
             
             for name in self.selection:
-                compatible_templates = self._check_novel_compatibility(templates, molecules)
+                compatible_templates, found_templates = self._check_novel_compatibility(templates, molecules)
                 
-                if len(compatible_templates) != 0:
+                if found_templates:
                     possible_actions, priors = self[name].get_actions(molecules)
-                    possible_actions, priors = self._integrate_novel_templates(possible_actions, priors, templates)
+                    possible_actions, priors = self._integrate_novel_templates(possible_actions, priors, compatible_templates, templates, molecules)
                     all_possible_actions.extend(possible_actions)
                     all_priors.extend(priors)
                 else:
