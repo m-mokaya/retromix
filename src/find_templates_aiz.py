@@ -60,7 +60,7 @@ if __name__ == "__main__":
         aiz_tb_routes.to_hdf(os.path.join(args.output, f'{args.target}_aiz.hdf5'), 'table')
     
     if os.path.isfile(os.path.join(args.output, f'{args.target}_cf2.hdf5')):
-        aiz_tb_routes = pd.read_hdf(os.path.join(args.output, f'{args.target}_cf2.hdf5'), 'table')
+        aiz_tf_routes = pd.read_hdf(os.path.join(args.output, f'{args.target}_cf2.hdf5'), 'table')
     else:      
         # load the route finders
         aiz_tf_routes = AizRouteFinder(
