@@ -1,0 +1,9 @@
+targets: ...
+output_dir: ...
+nproc: 1
+use_coprinet: false
+aizynthfinder_config: '/vols/opig/users/mokaya/retromix/aiztrain/novel_aiz_config.yml'
+template_library: 'data/uspto_templates_canonical.csv.gz'
+use_coprinet: false
+coprinet_model_path: 'CoPriNet/data/models/trained_virtual/lightning_logs/version_0/checkpoints/epoch=284-step=5323799.ckpt'
+stock: 'data/molport_blocks_stock.hdf5'
