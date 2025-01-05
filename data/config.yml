@@ -13,4 +13,4 @@ filter:
 stock:
   files:
     zinc: aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
-    molport: aizynthfinder/aizynthfinder/data/molport_blocks_stock.hdf5
+    molport: aizynthfinder/aizynthfinder/data/molport_stock.hdf5 

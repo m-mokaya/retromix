@@ -9,11 +9,102 @@ import numpy as np
 import multiprocessing
 from functools import partial
 
+from rdkit import Chem
+
 # Add the current working directory to sys.path
 sys.path.append(os.getcwd())
 
+from aizynthfinder.context.scoring import StateScorer
+from aizynthfinder.context.config import Configuration
 from aizynthfinder.reactiontree import ReactionTree
 from CoPriNet.pricePrediction.predict.predict import GraphPricePredictor
+
+
+
+class Scorer:
+    def __init__(self, predictor: GraphPricePredictor = None, stock: dict = None, type: str = 'state'):
+        self.predictor = predictor
+        self.stock = stock
+        self.cost_cache = {}
+        
+        if type == 'state':
+            self.scorer = StateScorer(config=Configuration())
+            self.tree_cost = self.get_state_score
+        if type == 'coprinet':
+            if self.predictor is None:
+                raise ValueError('No price predictor specified. Please add a compatible price predictor')
+            self.tree_cost = self.coprinet_tree_cost
+        if type == 'cost':
+            if self.stock is None:
+                raise ValueError('No stock library specified. Please add a compatible stock library')
+            self.tree_cost = self.get_stock_cost
+            
+    def __call__(self, rxn):
+        return self.tree_cost(rxn)
+        
+    def get_state_score(self, tree):
+        """
+        Calculate the cost of a tree using the state scorer
+        
+        :param tree: the tree to calculate the cost for
+        :return: the cost of the tree
+        """
+        rxn = ReactionTree.from_dict(tree)
+        tree_id = rxn.hash_key()
+        if tree_id not in self.cost_cache:
+            # score = self.scorer(rxn)
+            score = 0.7 * len(list(rxn.reactions())) + 0.3 * len(list(rxn.leafs()))
+            self.cost_cache[tree_id] = score
+        return self.cost_cache[tree_id]
+    
+    def get_stock_cost(self, tree):
+        """
+        Calculate the cost of a tree using stock library dict[inchi_key: price]
+        
+        :param tree: the tree to calculate the cost for
+        :return: the cost of the tree
+        """
+        rxn = ReactionTree.from_dict(tree)
+        stock_cost = self._calculate_stock_cost(rxn, self.stock)
+        cost = 0.7 * stock_cost + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
+        return cost 
+    
+    def _calculate_stock_cost(self, route: ReactionTree, stock: dict, not_in_stock=10.0) -> float:
+        """
+        Calculate the cost of a route using the stock library
+        
+        :param route: the route to calculate the cost for
+        :param stock: the stock library
+        """
+        leaves = list(route.leafs())
+        total_cost = 0
+        for leaf in leaves:
+            inchi_key = Chem.MolToInchiKey(Chem.MolFromSmiles(leaf.smiles))
+            if inchi_key in stock:
+                c = stock[inchi_key]
+                total_cost += c
+            else:
+                total_cost += not_in_stock
+                print(str(leaf)+' not in stock. Route not solved.')
+                return 1000
+        return total_cost
+        
+    
+    def get_coprinet_tree_cost(self, tree):
+        """
+        Calculate the cost of a tree using coprinet model to predict the cost of the molecules
+        
+        :param tree: the tree to calculate the cost for in AiZ reaction dict format.
+        :return: the cost of the tree
+        """
+        rxn = ReactionTree.from_dict(tree)
+        tree_id = rxn.hash_key()
+        if tree_id not in self.cost_cache:
+            leaf_costs = sum(predictor.predictListOfSmiles([leaf.smiles for leaf in rxn.leafs()]))
+            total_cost = 0.7 * leaf_costs + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
+            self.cost_cache[tree_id] = total_cost
+        return self.cost_cache[tree_id]
+        
 
 class OptimisationScorer:
     def __init__(self, stock: dict = None, predictor: GraphPricePredictor = None, use_coprinet: bool = False):

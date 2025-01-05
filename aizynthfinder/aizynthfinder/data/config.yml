@@ -7,7 +7,7 @@ search:
     prune_cycles_in_search: True
     search_rewards:
       - state score
-  max_transforms: 6
+  max_transforms: 4
   iteration_limit: 100
   return_first: false
   time_limit: 120
