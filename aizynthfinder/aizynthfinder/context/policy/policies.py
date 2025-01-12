@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from rdchiral import main as rdc
-
+import numpy as np
 
 from typing import TYPE_CHECKING
 
@@ -27,9 +27,11 @@ from aizynthfinder.context.policy.filter_strategies import (
 from aizynthfinder.utils.exceptions import PolicyException
 from aizynthfinder.utils.loading import load_dynamic_class
 
+from aizynthfinder.chem.reaction import TemplatedRetroReaction
+
 if TYPE_CHECKING:
     from aizynthfinder.chem import TreeMolecule
-    from aizynthfinder.chem.reaction import RetroReaction
+    from aizynthfinder.chem.reaction import RetroReaction, TemplatedRetroReaction
     from aizynthfinder.context.config import Configuration
     from aizynthfinder.utils.type_utils import Any, Dict, List, Sequence, Tuple
 
@@ -71,7 +73,7 @@ class ExpansionPolicy(ContextCollection):
         else:
             raise PolicyException("No optimisation data for novel templates")
             
-    def _check_novel_compatibility(self, novel_templates: list[tuple], molecules: TreeMolecule) -> list[str]:
+    def _check_novel_compatibility(self, novel_templates: list[tuple], molecules: list[TreeMolecule]) -> dict[TreeMolecule, list[str]]:
         """
         Check if the novel templates are compatible with the target molecules. 
         
@@ -79,20 +81,27 @@ class ExpansionPolicy(ContextCollection):
         :param molecules: the target molecules
         :return: the compatible templates
         """
-        compatible_templates = []
+        found = False
+        compatible_templates = {}
         for mol in molecules:
-            for rxn, score in novel_templates:
-                reaction = rdc.rdchiralReaction(rxn)
+            comp_temps = []
+            for template in novel_templates:
+                reaction = rdc.rdchiralReaction(template[0])
                 reactants = rdc.rdchiralReactants(mol.smiles)
                 try:
                     outcomes = rdc.rdchiralRun(reaction, reactants)
-                    if outcomes != None:
-                        compatible_templates.append(rxn)
-                except:
+                    if len(outcomes) > 0:
+                        comp_temps.append(template)
+                except Exception as e:
+                    print(f'POL: Exception: {e}')
                     continue
-            return compatible_templates
+                compatible_templates[mol] = comp_temps
+                if len(comp_temps) > 0:
+                    found = True
+                    print(f'POL: Num: compatible templates for {mol}: {len(comp_temps)}')
+            return compatible_templates, found
     
-    def _integrate_novel_templates(self, possible_actions, priors, novel_templates):
+    def _integrate_novel_templates(self, possible_actions, priors, compatible_templates, novel_templates, molecules: Sequence[TreeMolecule]):
         """
         Integrate novel templates into the possible actions.
         
@@ -101,34 +110,64 @@ class ExpansionPolicy(ContextCollection):
         :param novel_templates: the novel templates to integrate
         :return: the updated possible actions and priors
         """
+        
+        print('B: PRIOR RANGE: ', max(priors) - min(priors))
+        print("B: PRIOR VARIANCE: ", np.var(priors))
+        print("B: PRIOR MEAN: ", np.mean(priors))
+        
         max_prior = max(priors) if priors else 0.0
         min_prior = min(priors) if priors else 0.0
-        prior_range = max_prior - min_prior
+        # prior_range = max_prior - min_prior
+        prior_variance = np.var(priors) if priors else 0.0
+       
+        print(f'BEFORE: Total actions: {len(possible_actions)}', flush=True)
+        print('POL: actions reactans:', type(possible_actions[0]))
         
-        for template, score in novel_templates:
-            new_action = possible_actions[0].copy()     # copy existing actions as a base
-            new_action.metadata['template'] = template
-            new_action.metadata['opt_score'] = score
-            new_action.metadata['classification'] = 'novel'
-            new_action.metadata['policy_name'] = 'external'
+        for molecule, comp_templates in compatible_templates.items():
+            print('POL: comp Templates: ', comp_templates)
+            for temp in comp_templates:
+                    score = temp[1]
+                    
+                    metadata = {
+                        'template': temp[0],
+                        'classification': 'novel',
+                        'policy_name': 'external',
+                        'opt_score': score,
+                    }
+                    new_action = TemplatedRetroReaction(
+                        mol=molecule, 
+                        index=0,
+                        smarts=temp[0],
+                        metadata=metadata,
+                        use_rdchiral=True,
+                    )
+
+                
+                    # estimate prior for novel template based on opt score, prior range and min prior
+                    estimated_prior = min_prior + (score * prior_variance)
+                    
+                    # calculate opt factor, and new prior
+                    optimisation_factor = score * prior_variance
+                    new_prior = estimated_prior + optimisation_factor
+                    new_action.metadata['policy_probability'] = new_prior
+                    
+                    possible_actions.append(new_action)
+                    priors.append(new_prior)
+                
+        print(f"Novel templates integrated: {len(novel_templates)}", flush=True)
+        print(f"AFTER: Total actions: {len(possible_actions)}", flush=True)
+        print('POL: new action reactants: ', possible_actions[-1].reactants)
             
-            # estimate prior for novel template based on opt score, prior range and min prior
-            estimated_prior = min_prior + (score * prior_range)
-            
-            # calculate opt factor, and new prior
-            optimisation_factor = score * prior_range
-            new_prior = estimated_prior + optimisation_factor
-            new_action.metadata['policy_probability'] = new_prior
-            
-            possible_actions.append(new_action)
-            priors.append(new_prior)
-            
-            
-        print(f"Novel templates integrated: {len(novel_templates)}", flush=True)    
         # normalise and reorder the priors
         norm_priors = [float(i)/sum(priors) for i in priors]
+        print('First action: ', possible_actions[0])
+        print('Last action: ', possible_actions[-1])
         possible_actions = [x for _, x in sorted(zip(norm_priors, possible_actions), key=lambda pair: pair[0], reverse=True)]
         norm_priors = sorted(norm_priors, reverse=True)
+        
+        print('A: PRIOR RANGE: ', max(priors) - min(priors))
+        print("A: PRIOR VARIANCE: ", np.var(priors))
+        print("A: PRIOR MEAN: ", np.mean(priors))
         return possible_actions, norm_priors
     
     def _optimise_templates(self, possible_actions, priors, optimised_templates):
@@ -142,6 +181,7 @@ class ExpansionPolicy(ContextCollection):
         """
         max_prior = max(priors)
         prior_range = max_prior - min(priors)
+        prior_variance = np.var(priors)
 
         # Assuming optimised_templates is a list of tuples (template, score)
         # where score is a number between 0 and 1
@@ -153,7 +193,7 @@ class ExpansionPolicy(ContextCollection):
                     original_prior = priors[index]
                     
                     # Boost factor based on score and prior distribution
-                    optimisation_factor = score * prior_range  
+                    optimisation_factor = score * prior_variance  
                     new_prior = original_prior + optimisation_factor
                     
                     priors[index] = new_prior
@@ -185,14 +225,15 @@ class ExpansionPolicy(ContextCollection):
         all_priors = []
         
         if self._config.search.optimisation_type == 'novel':
+            print('POL: Optimising novel templates...')
             templates = self._get_optimised_templates()
             
             for name in self.selection:
-                compatible_templates = self._check_novel_compatibility(templates, molecules)
+                compatible_templates, found_templates = self._check_novel_compatibility(templates, molecules)
                 
-                if len(compatible_templates) != 0:
+                if found_templates:
                     possible_actions, priors = self[name].get_actions(molecules)
-                    possible_actions, priors = self._integrate_novel_templates(possible_actions, priors, templates)
+                    possible_actions, priors = self._integrate_novel_templates(possible_actions, priors, compatible_templates, templates, molecules)
                     all_possible_actions.extend(possible_actions)
                     all_priors.extend(priors)
                 else:

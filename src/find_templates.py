@@ -19,6 +19,7 @@ from route_finders.aizynthfinder import AizRouteFinder
 from route_finders.postera import PosRouteFinder
 from optimisation.scoring import Scorer
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the template analysis")
     parser.add_argument("--targets", help="The path to the actives file")

@@ -15,10 +15,16 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
                  template_library: list[str], 
                  stock: dict[str, float] = None, 
                  scoring_type: str = 'state',
+                 predictor = None,  
             ):
+        
         super().__init__(template_library, scoring_type=scoring_type)
         
-        self.scorer = Scorer(type=self.scoring_type)
+        self.scorer = Scorer(
+            predictor=predictor,
+            type=self.scoring_type,
+            stock=stock,
+            )
         
     def find_popular_templates(self, aiz_data: pd.DataFrame) -> dict[str: float]:
         """
@@ -82,17 +88,6 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
         aiz_routes = utils.get_solved_trees(aiz_data)
         
         all_aiz_templates = [list(utils.findkeys(route, 'template')) for mol in aiz_routes for route in mol]
-        all_aiz_templates = [item for sublist in all_aiz_templates for item in sublist]
-        all_aiz_templates = [canon_reaction_smarts(template) for template in all_aiz_templates]
-        # all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]
-        # all_pos_templates = [item for sublist in all_pos_templates for item in sublist]
-        
-        # collect all pos templates
-        all_pos_templates = []
-        for mol, routes in pos_data.items():
-            for route in routes:
-                all_pos_templates.extend(list(utils.findkeys(route, 'template')))
-         
         all_aiz_templates = [item for sublist in all_aiz_templates for item in sublist]
         all_aiz_templates = [canon_reaction_smarts(template) for template in all_aiz_templates]
         # all_pos_templates = [list(utils.findkeys(route, 'template')) for mol, routes in pos_data.items() for route in routes]

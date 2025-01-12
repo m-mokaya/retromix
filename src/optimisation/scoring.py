@@ -33,7 +33,7 @@ class Scorer:
         if type == 'coprinet':
             if self.predictor is None:
                 raise ValueError('No price predictor specified. Please add a compatible price predictor')
-            self.tree_cost = self.coprinet_tree_cost
+            self.tree_cost = self.get_coprinet_tree_cost
         if type == 'cost':
             if self.stock is None:
                 raise ValueError('No stock library specified. Please add a compatible stock library')
@@ -100,7 +100,7 @@ class Scorer:
         rxn = ReactionTree.from_dict(tree)
         tree_id = rxn.hash_key()
         if tree_id not in self.cost_cache:
-            leaf_costs = sum(predictor.predictListOfSmiles([leaf.smiles for leaf in rxn.leafs()]))
+            leaf_costs = sum(self.predictor.predictListOfSmiles([leaf.smiles for leaf in rxn.leafs()]))
             total_cost = 0.7 * leaf_costs + 0.15 * len(list(rxn.leafs())) + 0.15 * len(list(rxn.reactions()))
             self.cost_cache[tree_id] = total_cost
         return self.cost_cache[tree_id]

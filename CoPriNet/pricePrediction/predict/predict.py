@@ -31,10 +31,18 @@ class GraphPricePredictor():
         self.n_gpus = n_gpus
         self.n_cpus = n_cpus
         self.batch_size = batch_size
-        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
-        self.trainer = pl.Trainer(logger=False)
+        
+        if torch.backends.mps.is_available():
+            self.device = "mps"
+        elif torch.cuda.is_available():
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
+        
+        self.trainer = pl.Trainer(logger=False, accelerator=self.device, devices=self.n_gpus)
         self.model = PricePredictorModule.load_from_checkpoint(self.model_path, batch_size=self.batch_size, strict=False)
-
+        self.model.to(self.device)
+        
         if USE_FEATURES_NET:
             from pricePrediction.preprocessData.smilesToDescriptors import smiles_to_graph
 
@@ -59,6 +67,7 @@ class GraphPricePredictor():
                 yield pred
                 
     def predict(self, dataloader):
+        self.model.to(self.device)
         return self.trainer.predict(self.model, dataloader)
     
     def get_graphs_fn(self, graphs_list):
@@ -77,6 +86,7 @@ class GraphPricePredictor():
         n_smiles = len(smiles_list)
         all_preds = np.nan * np.ones(n_smiles)
         for i, batch in enumerate(dataloader):
+            batch = batch.to(self.device)
             batch_preds = preds[i].to("cpu").numpy()
             idxs = batch.input_idx.to("cpu").numpy().astype(np.int64).tolist()
             all_preds[idxs] = batch_preds
