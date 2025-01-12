@@ -3,14 +3,12 @@ import sys
 import pandas as pd
 import numpy as np
 from joblib import Parallel, delayed
+import dotenv
 
+dotenv.load_dotenv()
+retromix_dir = os.getenv("RETROMIX_PATH")
 
-sys.path.append(os.getcwd())
-sys.path.append(os.path.join(os.getcwd(), 'aizynthfinder'))
-if '/data/pegasus/not-backed-up/mokaya/aizynthfinder' in sys.path:
-    sys.path.remove('/data/pegasus/not-backed-up/mokaya/aizynthfinder')
-for path in sys.path:
-    print(path)
+sys.path.append(os.path.join(retromix_dir, 'aizynthfinder'))
 
 from route_finders.route_finder import RouteFinder
 from aizynthfinder.aizynthfinder import AiZynthFinder

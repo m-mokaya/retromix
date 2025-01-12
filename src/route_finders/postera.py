@@ -10,6 +10,11 @@ from src.route_finders.route_finder import RouteFinder
 from rdchiral.template_extractor import extract_from_reaction # type: ignore
 from analysis.generate_templates import generate_templates
 
+from rxnutils.chem.reaction import ChemicalReaction
+from rxnmapper import RXNMapper
+
+
+
 class PosRouteFinder(RouteFinder):
     def __init__(self, smiles, output, maxSearchDepth=4, ignore_zero_steps=False,
                  catalogues=["molport"], api_key=None, verbose=True):   
@@ -27,6 +32,8 @@ class PosRouteFinder(RouteFinder):
         
         self.api_key = api_key
         self.output = output
+        
+        self.rxn_mapper = RXNMapper()
         
     def split_smiles(self):
         """
@@ -70,7 +77,7 @@ class PosRouteFinder(RouteFinder):
             print("Error! Status code:", response.status_code, "Message:", response.text)
             return None
         
-    def convert_results_to_aiz_format(self, data):
+    def convert_results_to_aiz_format(self, data, target_smiles):
         """ 
         Convert the results to a format that can be saved to a file.
         
@@ -86,21 +93,25 @@ class PosRouteFinder(RouteFinder):
                 'hide': False,
                 'smiles': smiles,
                 'is_chemical': True,
-                'in_stock': molecule_dict[smiles]['isBuildingBlock'],
-                'children': []
+                'in_stock': molecule_dict[smiles]['isBuildingBlock'] if smiles in molecule_dict else False,
+                'children': [],
             }
 
             for reaction in reactions:
                 if reaction['productSmiles'] == smiles:
-                    template_data = generate_templates(reaction)  # Call generate_templates to get the SMARTS string
+                    reactants_smi = '.'.join(reaction['reactantSmiles'])
+                    rsmi = f"{reactants_smi}>>{reaction['productSmiles']}"
+                    mapped_rxn = self.rxn_mapper.get_attention_guided_atom_maps([rsmi])[0]['mapped_rxn']
+                    # template_data = generate_templates(reaction)  # Call generate_templates to get the SMARTS string
+                    retro_template = ChemicalReaction(smiles=mapped_rxn).generate_reaction_template()[1].smarts
                     reaction_node = {
                         'type': 'reaction',
                         'hide': False,
-                        'smiles': reaction['reactantSmiles'],  # No specific SMILES for the reaction itself
+                        'smiles': rsmi,  # No specific SMILES for the reaction itself
                         'is_reaction': True,
                         'metadata': {
                             'name': reaction['name'],
-                            'template': template_data['reaction_smarts'],  # Add SMARTS string to metadata
+                            'template': retro_template,  # Add SMARTS string to metadata
                             'classification': reaction['name'],
                             'policy_name': 'postera',
                         },
@@ -110,14 +121,14 @@ class PosRouteFinder(RouteFinder):
             return node
         
         # Identify the root molecule (final product)
-        root_smiles = None
-        product_smiles_set = {reaction['productSmiles'] for reaction in data['reactions']}
-        reactant_smiles_set = {reactant for reaction in data['reactions'] for reactant in reaction['reactantSmiles']}
-        root_candidates = product_smiles_set - reactant_smiles_set
-        if len(root_candidates) == 1:
-            root_smiles = list(root_candidates)[0]
-        else:
-            raise ValueError("Unable to determine unique root molecule")
+        root_smiles = target_smiles
+        # product_smiles_set = {reaction['productSmiles'] for reaction in data['reactions']}
+        # reactant_smiles_set = {reactant for reaction in data['reactions'] for reactant in reaction['reactantSmiles']}
+        # root_candidates = product_smiles_set - reactant_smiles_set
+        # if len(root_candidates) == 1:
+        #     root_smiles = list(root_candidates)[0]
+        # else:
+        #     raise ValueError("Unable to determine unique root molecule")
 
         # Build the tree starting from the root molecule
         return build_tree(root_smiles, data['reactions']) 
@@ -135,8 +146,8 @@ class PosRouteFinder(RouteFinder):
         with Pool(2) as p:
             results = p.map(self.retrosynthesis_search, chunks)
         
-        print('results len: ', len(results))
-        print('results type: ', list(results[0].keys()))
+        with open(os.path.join(self.output, "pos_routes.json"), 'w') as f:
+            json.dump(results, f, indent=4)
         
         # flatten the list of dictionaries to a single dictionary
         flat_results = {k: v for d in results for k, v in d.items()}
@@ -144,10 +155,10 @@ class PosRouteFinder(RouteFinder):
         aiz_format_results = {}
         for smiles, routes in flat_results.items():
             route_data = routes['routes']
-            pathways = [self.convert_results_to_aiz_format(route) for route in route_data]
+            pathways = [self.convert_results_to_aiz_format(route, smiles) for route in route_data]
             aiz_format_results[smiles] = pathways
         
-        with open(os.path.join(self.output, "pos_routes.json"), 'w') as f:
+        with open(os.path.join(self.output, "pos_routes_aiz_format.json"), 'w') as f:
             json.dump(aiz_format_results, f, indent=4)            
         
         return aiz_format_results

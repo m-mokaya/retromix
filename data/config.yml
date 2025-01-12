@@ -1,16 +1,26 @@
-policy:
-  files:
-    uspto:
-      - aizynthfinder/aizynthfinder/data/uspto_model.onnx
-      - aizynthfinder/aizynthfinder/data/uspto_templates.csv.gz
-      novel_template_path: /Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix/lfs/templates.json
-    ringbreaker:
-      - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_model.onnx
-      - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_templates.csv.gz     
+search:
+  algorithm: mcts
+  algorithm_config:
+    C: 1.4
+    default_prior: 0.5
+    use_prior: True
+    prune_cycles_in_search: True
+    search_rewards:
+      - state score
+  max_transforms: 4
+  iteration_limit: 100
+  return_first: false
+  time_limit: 120
+  exclude_target_from_stock: True
+expansion:
+  uspto:
+    model: aizynthfinder/aizynthfinder/data/uspto_model.onnx
+    template: aizynthfinder/aizynthfinder/data/uspto_templates.csv.gz
+    rescale_prior: True
+  ringbreaker:
+    - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_model.onnx
+    - aizynthfinder/aizynthfinder/data/uspto_ringbreaker_templates.csv.gz
 filter:
-  files:
-    uspto: aizynthfinder/aizynthfinder/data/uspto_filter_model.onnx
+  uspto: aizynthfinder/aizynthfinder/data/uspto_filter_model.onnx
 stock:
-  files:
-    zinc: aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
-    molport: aizynthfinder/aizynthfinder/data/molport_stock.hdf5 
+  molport: aizynthfinder/aizynthfinder/data/molport_stock.hdf5
