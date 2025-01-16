@@ -47,6 +47,6 @@ class TemplateAnalyser:
         
         # find the templates in the library
         overlooked_templates = {template: unused_templates[template] for template, canon_template in canon_unused_templates.items() if canon_template in self.template_library} # to make sure it matches the USPTO template SMARTS. 
-        novel_templates = {canon_template: unused_templates[template] for template, canon_template in canon_unused_templates.items() if canon_template not in self.template_library}
+        novel_templates = {template: unused_templates[template] for template, canon_template in canon_unused_templates.items() if canon_template not in self.template_library}
         
         return overlooked_templates, novel_templates

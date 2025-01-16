@@ -107,8 +107,9 @@ class PosRouteFinder(RouteFinder):
                     reaction_node = {
                         'type': 'reaction',
                         'hide': False,
-                        'smiles': rsmi,  # No specific SMILES for the reaction itself
+                        'smiles': f"TEST: {rsmi}",  # No specific SMILES for the reaction itself
                         'is_reaction': True,
+                        'postera_reaction': reaction,
                         'metadata': {
                             'name': reaction['name'],
                             'template': retro_template,  # Add SMARTS string to metadata
