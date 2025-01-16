@@ -119,8 +119,10 @@ class AizPosTemplateAnalyser(TemplateAnalyser):
                     templates.extend(flat_templates)
             else:
                 if self.scoring_type != 'frequency':
+                    if len(pos_trees) == 0:
+                        continue
                     pos_costs = [self.scorer(tree) for tree in pos_trees]
-                    cheapest_route  = pos_trees[np.argmin(pos_costs)]
+                    cheapest_route = pos_trees[np.argmin(pos_costs)]
                     templates.extend(list(utils.findkeys(cheapest_route, 'template')))
                 else:
                     temps = [list(utils.findkeys(route, 'template')) for route in pos_trees]

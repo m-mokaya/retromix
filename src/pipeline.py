@@ -141,6 +141,13 @@ if __name__ == "__main__":
     overlooked_aiz_config = utils.generate_aiz_configs(config['aizynthfinder_config'], "overlooked", os.path.join(args.output_dir, f'overlooked_templates.json'))
     popular_aiz_config = utils.generate_aiz_configs(config['aizynthfinder_config'], "popular", os.path.join(args.output_dir, f'popular_templates.json'))
     
+    with open(os.path.join(args.output_dir, 'novel_aiz_config.yml'), 'w') as f:
+        yaml.dump(novel_aiz_config, f)
+    with open(os.path.join(args.output_dir, 'overlooked_aiz_config.yml'), 'w') as f:
+        yaml.dump(overlooked_aiz_config, f)
+    with open(os.path.join(args.output_dir, 'popular_aiz_config.yml'), 'w') as f:
+        yaml.dump(popular_aiz_config, f)
+    
     for opt_type in ["novel", "overlooked", "popular"]:
         print(f"Optimising {opt_type} templates...")
         optimised_aiz = AizRouteFinder(
