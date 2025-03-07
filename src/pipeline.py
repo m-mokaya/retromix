@@ -10,11 +10,10 @@ import pandas as pd
 
 dotenv.load_dotenv()
 
-# retromix_path = os.getenv("RETROMIX_PATH")
-retromix_path = "/Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix"
+retromix_path = os.getenv("RETROMIX_PATH")
 
 sys.path.append(os.path.join(retromix_path, "aizynthfinder"))
-sys.path.append(os.path.join("/Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix", "CoPriNet"))
+sys.path.append(os.path.join(retromix_path, "CoPriNet"))
 
 from pricePrediction.predict.predict import GraphPricePredictor
 
@@ -59,6 +58,12 @@ if __name__ == "__main__":
             n_gpus=args.ngpus,
         )
 
+
+    # load the templates
+    with gzip.open(os.path.join(retromix_path, config['template_library']), 'r') as f:
+        templates = pd.read_csv(f, sep='\t')
+    canonical_templates = templates['canonical_smarts'].tolist()
+    
     print("Loaded configuration, target molecules, stock, and templates.")
     
     
