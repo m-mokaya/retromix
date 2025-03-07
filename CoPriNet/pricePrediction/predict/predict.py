@@ -11,6 +11,8 @@ from torch_geometric.data import Batch
 from tqdm import tqdm
 import pytorch_lightning as pl
 
+sys.path.append(os.path.join(os.getcwd(), 'CoPriNet'))
+
 from pricePrediction.nets.netsGraph import PricePredictorModule
 from pricePrediction.config import NUM_WORKERS_PER_GPU, BATCH_SIZE, DEFAULT_MODEL, USE_FEATURES_NET, \
     BUFFER_N_BATCHES_FOR_PRED

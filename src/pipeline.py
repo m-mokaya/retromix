@@ -10,10 +10,11 @@ import pandas as pd
 
 dotenv.load_dotenv()
 
-retromix_path = os.getenv("RETROMIX_PATH")
+# retromix_path = os.getenv("RETROMIX_PATH")
+retromix_path = "/Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix"
 
 sys.path.append(os.path.join(retromix_path, "aizynthfinder"))
-sys.path.append(os.path.join(retromix_path, "CoPriNet"))
+sys.path.append(os.path.join("/Users/marangamokaya/Library/CloudStorage/OneDrive-Nexus365/Documents/PhD/Exscientia/Research/retromix", "CoPriNet"))
 
 from pricePrediction.predict.predict import GraphPricePredictor
 
@@ -30,11 +31,6 @@ if __name__ == "__main__":
     parser.add_argument("--ngpus", type=int, help="The number of GPUs to use", default=0)
     args = parser.parse_args()
     
-    
-    """
-    Loading neccesary compodent for template identifiaction. 
-    """
-    
     # load the rm config file
     with open(args.config, 'r') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
@@ -47,6 +43,11 @@ if __name__ == "__main__":
         targets = f.readlines()
     targets = [x.strip() for x in targets]
     
+    # load the templates
+    with gzip.open(os.path.join(retromix_path, config['template_library']), 'r') as f:
+        templates = pd.read_csv(f, sep='\t')
+    canonical_templates = templates['canonical_smarts'].tolist()
+    
     # load the stock dictionary
     if config['scoring_type'] == "cost":
         stock = pd.read_hdf(os.path.join(retromix_path, config['stock']), "table")   
@@ -58,12 +59,6 @@ if __name__ == "__main__":
             n_gpus=args.ngpus,
         )
 
-
-    # load the templates
-    with gzip.open(os.path.join(retromix_path, config['template_library']), 'r') as f:
-        templates = pd.read_csv(f, sep='\t')
-    canonical_templates = templates['canonical_smarts'].tolist()
-    
     print("Loaded configuration, target molecules, stock, and templates.")
     
     
@@ -95,11 +90,10 @@ if __name__ == "__main__":
                 api_key=os.getenv('POSTERA_API_KEY')
             ).find_routes()
     elif config['tf_model'] == "aizynthfinder":
-        raise NotImplementedError("The AiZynthFinder model is not yet implemented.")
+        raise NotImplementedError("The TF AiZynthFinder model is not yet implemented.")
             
     print("Loaded TB and TF routes.")
     
-
 
     """
     Finding the popular, unused, overlooked, and novel templates    
@@ -140,6 +134,13 @@ if __name__ == "__main__":
     novel_aiz_config = utils.generate_aiz_configs(config['aizynthfinder_config'], "novel", os.path.join(args.output_dir, f'novel_templates.json'))
     overlooked_aiz_config = utils.generate_aiz_configs(config['aizynthfinder_config'], "overlooked", os.path.join(args.output_dir, f'overlooked_templates.json'))
     popular_aiz_config = utils.generate_aiz_configs(config['aizynthfinder_config'], "popular", os.path.join(args.output_dir, f'popular_templates.json'))
+    
+    with open(os.path.join(args.output_dir, 'novel_aiz_config.yml'), 'w') as f:
+        yaml.dump(novel_aiz_config, f)
+    with open(os.path.join(args.output_dir, 'overlooked_aiz_config.yml'), 'w') as f:
+        yaml.dump(overlooked_aiz_config, f)
+    with open(os.path.join(args.output_dir, 'popular_aiz_config.yml'), 'w') as f:
+        yaml.dump(popular_aiz_config, f)
     
     for opt_type in ["novel", "overlooked", "popular"]:
         print(f"Optimising {opt_type} templates...")

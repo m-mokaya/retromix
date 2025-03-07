@@ -23,11 +23,11 @@ from optimisation.scoring import Scorer
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the template analysis")
     parser.add_argument("--targets", help="The path to the actives file")
+    parser.add_argument("--target_name", help="The name of the target for output files", default="target", type=str)
     parser.add_argument("--config", help="The path to the RetroMix configuration file")
     parser.add_argument("--nproc", type=int, help="The number of processes to use", default=1)
     parser.add_argument("--output", help="The path to the output directory")
     parser.add_argument("--scoring_type", help="The type of scoring to use", default='state', choices=['state', 'cost', 'coprinet', 'frequency'])
-    parser.add_argument("--target", help="The target to analyse")
     args = parser.parse_args()
     
     # load the configuration file
@@ -39,17 +39,16 @@ if __name__ == "__main__":
         actives = f.readlines()
     actives = [x.strip() for x in actives]
    
+    # load stock if 'cost' metric used for idenficication
     if args.scoring_type == 'cost': 
         stock = pd.read_hdf(config['stock'], 'table')
         stock_dict = {inchi: price for inchi, price in zip(stock['inchi_key'], stock['price'])}
-        print("FT aiz: ", len(stock_dict))
         
     print("Loaded actives & configuration & stock.")
-
     
-
-    if os.path.isfile(os.path.join(args.output, f'{args.target}_aiz.hdf5')):
-        aiz_tb_routes = pd.read_hdf(os.path.join(args.output, f'{args.target}_aiz.hdf5'), 'table')
+    # check whether the routes to target have already been saved. if not, find them. 
+    if os.path.isfile(os.path.join(args.output, f'{args.target_name}_aiz.hdf5')):
+        aiz_tb_routes = pd.read_hdf(os.path.join(args.output, f'{args.target_name}_aiz.hdf5'), 'table')
     else:      
         # load the route finders
         aiz_tb_routes = AizRouteFinder(
@@ -57,10 +56,10 @@ if __name__ == "__main__":
             nproc=args.nproc,
             smiles=actives
         ).find_routes()
-        aiz_tb_routes.to_hdf(os.path.join(args.output, f'{args.target}_aiz.hdf5'), 'table')
+        aiz_tb_routes.to_hdf(os.path.join(args.output, f'{args.target_name}_aiz.hdf5'), 'table')
     
-    if os.path.isfile(os.path.join(args.output, f'{args.target}_cf2.hdf5')):
-        aiz_tf_routes = pd.read_hdf(os.path.join(args.output, f'{args.target}_cf2.hdf5'), 'table')
+    if os.path.isfile(os.path.join(args.output, f'{args.target_name}_tf.hdf5')):
+        aiz_tf_routes = pd.read_hdf(os.path.join(args.output, f'{args.target_name}_tf.hdf5'), 'table')
     else:      
         # load the route finders
         aiz_tf_routes = AizRouteFinder(
@@ -68,7 +67,7 @@ if __name__ == "__main__":
             nproc=args.nproc,
             smiles=actives
         ).find_routes()
-        aiz_tf_routes.to_hdf(os.path.join(args.output, f'{args.target}_cf2.hdf5'), 'table')
+        aiz_tf_routes.to_hdf(os.path.join(args.output, f'{args.target_name}_tf.hdf5'), 'table')
             
     aiz_tb_routes.drop_duplicates(subset=['target'], inplace=True)
     aiz_tf_routes.drop_duplicates(subset=['target'], inplace=True)

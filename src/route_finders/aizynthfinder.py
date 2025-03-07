@@ -21,6 +21,19 @@ class AizRouteFinder(RouteFinder):
         self.configdict = configdict
        
     def process_smiles(self, smi, finder):
+        """
+        Process a target molecule SMILES string through the route finder algorithm.
+        This method executes the complete retrosynthesis workflow: it sets up the target
+        molecule in the finder, prepares and performs the tree search, builds synthesis
+        routes, and collects statistics about the process.
+        :param smi: SMILES string of the target molecule
+        :type smi: str
+        :param finder: Route finder object that implements the retrosynthetic search algorithm
+        :type finder: AiZynthFinder object
+        :return: Dictionary containing search statistics and generated routes
+        :rtype: dict
+        """
+        
         finder.target_smiles = smi
         finder.prepare_tree()
         search_time = finder.tree_search()

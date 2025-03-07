@@ -52,7 +52,6 @@ class Scorer:
         rxn = ReactionTree.from_dict(tree)
         tree_id = rxn.hash_key()
         if tree_id not in self.cost_cache:
-            # score = self.scorer(rxn)
             score = 0.7 * len(list(rxn.reactions())) + 0.3 * len(list(rxn.leafs()))
             self.cost_cache[tree_id] = score
         return self.cost_cache[tree_id]

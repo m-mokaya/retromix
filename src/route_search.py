@@ -5,10 +5,6 @@ import yaml
 import argparse
 
 sys.path.append(os.getcwd())
-# # sys.path.remove('/data/pegasus/not-backed-up/mokaya/aizynthfinder')
-# for path in sys.path:
-#     print(path)
-    
     
 from src.route_finders.aizynthfinder import AizRouteFinder
 from src.utils import generate_aiz_configs
