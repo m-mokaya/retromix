@@ -1,8 +1,12 @@
 .env
 test_results/
 aizynthfinder/aizynthfinder/data/uspto_*
+aizynthfinder/aizynthfinder/data/updated_zinc.hdf5
+aizynthfinder/aizynthfinder/data/molport_stock.hdf5
 data/USPTO*
 aizynthfinder/aizynthfinder/data/zinc_stock.hdf5
 paper/
 lfs/
 data/molport*
+kebl6/
+src/run_pipeline.py

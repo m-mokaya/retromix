@@ -93,7 +93,6 @@ class ExpansionPolicy(ContextCollection):
                     if len(outcomes) > 0:
                         comp_temps.append(template)
                 except Exception as e:
-                    print(f'POL: Exception: {e}')
                     continue
                 compatible_templates[mol] = comp_temps
                 if len(comp_temps) > 0:
@@ -225,7 +224,6 @@ class ExpansionPolicy(ContextCollection):
         all_priors = []
         
         if self._config.search.optimisation_type == 'novel':
-            print('POL: Optimising novel templates...')
             templates = self._get_optimised_templates()
             
             for name in self.selection:

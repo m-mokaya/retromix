@@ -1,0 +1,15 @@
+name: retromix
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10 
+  - pip
+  - pip:
+    - rdchiral
+    - rdcanon
+    - python-dotenv
+    - torch_geometric
+    - rxnmapper
+    - "pydantic==1.10.15"
+    - reaction-utils

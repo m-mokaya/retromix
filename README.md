@@ -1,7 +1,5 @@
 # Template-Free & Template-based integration for reaction space exploration 🧪
 
-🚧 **This repository is STILL UNDER DEVELOPMENT** 🚧
-
 ## Overview
 This project extends [AiZynthFinder](https://github.com/MolecularAI/aizynthfinder) to effectively explore reaction space through the integration of template-free approaches with template-based tools. For more details on our research, please refer to [paper link].
 
@@ -14,48 +12,71 @@ git clone [repository-url]
 
 2. Create and set up the [AiZynthFinder](https://github.com/MolecularAI/aizynthfinder) environment as described in their documentation.
 
-3. Install additional required packages:
 ```bash
-pip install rdcanon rdchiral
+cd aizynthfinder
+conda env create -f env-dev.yml
+poetry install -all-extras
+cd ..
+conda env update -f retromix.yml
+```
+
+3. create an .env file to add the path to your retromix dir, and POSTERA api key. This is essential to run the pipeline. 
+
+In the .env file add:
+
+```bash
+POSTERA_API_KEY="{postera_api_key}"
+RETROMIX_PATH="{retromix_path}"
 ```
 
 ## Pipeline Overview
 
 Our pipeline consists of 3 key phases:
 
-1. Popular, Overlooked and Novel template identification
-2. Integration of these templates in route searches
-3. Scoring of post-optimization route search performance
+1. Identification of Popular, Overlooked and Novel templates
+2. Integration of these templates in AiZynthFinder route searches
+3. Scoring of post-optimization search performance
 
 ### Phase 1: Template Identification
-Navigate to `notebooks/find_templates.ipynb` for detailed walkthrough.
+
+We provide files to complete this process with a template-based (AiZynthFinder) and template-free (AiZynthFinder or Postera) methods. 
+
+For example to run the AiZynthFinder only method:
 
 Run the template identification script:
 ```bash
-python src/find_templates.py --rm_config {config_file}
+python src/find_templates_aiz.py --rm_config {config_file} --targets {target_file_path} --output_path {output_path} --scoring_type {scoring_type}
 ```
 
+The default route scoring type is state score as provided by AiZynthFinder. This will rank routes based on their state score, then extract relevant templates. 
+
 ### Phase 2: Template Integration
-Reference `notebooks/integration.ipynb` for implementation details.
+
+The next step is to search for routes to target molecules while optimsing specfic templates. 
 
 Execute the route search:
 ```bash
-python src/route_search.py {arguments}
+python src/route_search.py --config {rm_config_path} --output_dir {output_dir} --type {optimisation_type} --templates {template_file} --optimise {bool} --smiles {target_smiles}
 ```
 
 ### Phase 3: Performance Scoring
-See `notebooks/pos_scoring.ipynb` for analysis methodology.
 
 Run the scoring analysis:
+
+The final step is to calculate the terms of the POS score (a, b , y). 
+
 ```bash
-python src/analysis/scoring.py --pre {pre_file} --post {post_file} --config {fm_config_file}
+python src/optimisation/scoring.py --pre {pre_file - aiz} --post {post_file - aiz} --config {rm_config_path} --output {output_file_path}
 ```
 
-## Documentation
-- Detailed documentation can be found in the respective notebooks:
-  - Template Finding: `notebooks/find_templates.ipynb`
-  - Integration: `notebooks/integration.ipynb`
-  - Post-optimization Scoring: `notebooks/pos_scoring.ipynb`
+There is functionality to create your own scoring function. Currently, cost, state score, frequency and CoPriNet prediction model (will perform better with gpu access) to rank templates. 
+
+## Run the pipeline
+Alternatively, the pipeline.py file allows you to run the whole pipeline in one. 
+
+```bash
+python src/pipeline.py --targets {target_mol_path} --config {retromix_config} --output_dir {output_dir}
+```
 
 ## Dependencies
 - AiZynthFinder
@@ -65,8 +86,3 @@ python src/analysis/scoring.py --pre {pre_file} --post {post_file} --config {fm_
 ## Citation
 If you use this work, please cite our paper: [paper citation]
 
-## License
-TODO: [Add license information]
-
-## Contact
-TODO: [Add contact information]
