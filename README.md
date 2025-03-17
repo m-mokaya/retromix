@@ -1,5 +1,7 @@
 # Template-Free & Template-based integration for reaction space exploration 🧪
 
+This is the code necessary to reproduce the work described in {link to paper}.
+
 ## Overview
 This project extends [AiZynthFinder](https://github.com/MolecularAI/aizynthfinder) to effectively explore reaction space through the integration of template-free approaches with template-based tools. For more details on our research, please refer to [paper link].
 
@@ -77,11 +79,6 @@ Alternatively, the pipeline.py file allows you to run the whole pipeline in one.
 ```bash
 python src/pipeline.py --targets {target_mol_path} --config {retromix_config} --output_dir {output_dir}
 ```
-
-## Dependencies
-- AiZynthFinder
-- rdcanon
-- rdchiral
 
 ## Citation
 If you use this work, please cite our paper: [paper citation]
